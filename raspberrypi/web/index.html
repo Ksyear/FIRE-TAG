@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FIRE-TAG 요구조자 위치</title>
+<style>
+/* Self-contained on purpose: the Pi hotspot has no internet, so no CDN/fonts. */
+:root {
+  --bg: #F7F8FA; --card: #FFFFFF; --line: #E5E7EB; --grid: #EEF0F3;
+  --text: #111827; --sub: #6B7280; --faint: #9CA3AF;
+  --red: #EF4444; --red-soft: rgba(239, 68, 68, .14);
+  --green: #10B981; --amber: #F59E0B; --gray: #9CA3AF;
+  --range: #6366F1;
+  --ui: system-ui, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0F1115; --card: #171A21; --line: #2A2F3A; --grid: #1E222B;
+    --text: #F3F4F6; --sub: #9CA3AF; --faint: #6B7280;
+    --red-soft: rgba(239, 68, 68, .22); --range: #818CF8;
+  }
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--ui); font-size: 14px; }
+header {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--card);
+}
+header h1 { font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
+header h1 b { color: var(--red); }
+.spacer { flex: 1; }
+.pill {
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px;
+  border: 1px solid var(--line); border-radius: 999px; font-size: 12px; color: var(--sub);
+}
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gray); flex: none; }
+.dot.ok { background: var(--green); } .dot.bad { background: var(--red); } .dot.warn { background: var(--amber); }
+a.btn {
+  font-size: 12px; color: var(--text); text-decoration: none; padding: 5px 10px;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--bg);
+}
+main { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; padding: 16px; }
+@media (max-width: 860px) { main { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+.card + .card { margin-top: 12px; }
+.card h2 { font-size: 11px; font-weight: 600; color: var(--sub); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 10px; }
+#mapCard { padding: 8px; display: flex; flex-direction: column; }
+#map { width: 100%; height: calc(100vh - 150px); min-height: 340px; display: block; }
+@media (max-width: 860px) { #map { height: 85vw; min-height: 0; } }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; padding: 6px 8px 2px; font-size: 12px; color: var(--sub); }
+.legend i { display: inline-block; width: 14px; height: 0; border-top: 2px solid; vertical-align: middle; margin-right: 4px; }
+.tag-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.tag-name { font-weight: 700; font-size: 15px; }
+.badge { font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 6px; }
+.badge.live { background: rgba(16, 185, 129, .14); color: var(--green); }
+.badge.lost { background: var(--red-soft); color: var(--red); }
+.coords { font-family: var(--mono); font-size: 22px; font-weight: 600; margin: 4px 0 8px; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 13px; }
+.kv dt { color: var(--sub); } .kv dd { font-family: var(--mono); text-align: right; }
+.row { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-top: 1px solid var(--line); font-size: 13px; }
+.row:first-of-type { border-top: 0; }
+.row .name { font-weight: 600; width: 28px; }
+.row .meta { color: var(--sub); font-family: var(--mono); font-size: 12px; margin-left: auto; text-align: right; }
+.events { max-height: 260px; overflow: auto; }
+.ev { padding: 6px 0; border-top: 1px solid var(--line); font-size: 13px; display: flex; gap: 8px; }
+.ev:first-child { border-top: 0; }
+.ev time { color: var(--faint); font-family: var(--mono); font-size: 12px; flex: none; width: 56px; }
+.ev.bad { color: var(--red); }
+.empty { color: var(--sub); font-size: 13px; line-height: 1.5; }
+.controls { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.controls .line { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+button {
+  font: inherit; font-size: 13px; font-weight: 600; padding: 7px 12px; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--bg); color: var(--text); cursor: pointer;
+}
+button:disabled { opacity: .5; cursor: default; }
+button.danger { background: var(--red); border-color: var(--red); color: #fff; }
+button.small { font-size: 12px; padding: 4px 9px; font-weight: 500; }
+.note { font-size: 12px; color: var(--sub); margin-top: 8px; line-height: 1.5; }
+.note.ok { color: var(--green); } .note.bad { color: var(--red); }
+svg text { font-family: var(--ui); }
+.tag-g { transition: transform .45s ease-out; }
+</style>
+</head>
+<body>
+<header>
+  <h1><b>FIRE-TAG</b> 요구조자 실시간 위치</h1>
+  <span class="spacer"></span>
+  <span class="pill"><span class="dot" id="linkDot"></span><span id="linkText">연결 중…</span></span>
+  <a class="btn" href="/api/positions.csv?minutes=60">최근 1시간 CSV</a>
+</header>
+
+<main>
+  <section class="card" id="mapCard">
+    <svg id="map" preserveAspectRatio="xMidYMid meet" aria-label="평면도"></svg>
+    <div class="legend">
+      <span><span class="dot ok" style="display:inline-block"></span> 앵커(온라인)</span>
+      <span><i style="border-color:var(--range);border-top-style:dashed"></i>앵커별 측정 거리</span>
+      <span><i style="border-color:var(--red)"></i>최근 30초 이동 경로</span>
+      <span>원점(0,0) 왼쪽 아래 · 단위 m</span>
+    </div>
+  </section>
+
+  <aside>
+    <section class="card">
+      <h2>요구조자</h2>
+      <div id="tagInfo"><p class="empty">데이터를 불러오는 중…</p></div>
+      <div class="controls">
+        <div class="line">
+          <button id="alertBtn" disabled>경보 켜기</button>
+          <span class="note" id="alertNote" style="margin:0">요구조자 Tag의 LED를 깜빡여 구조 접근을 알립니다</span>
+        </div>
+      </div>
+    </section>
+    <section class="card">
+      <h2>앵커</h2>
+      <div id="anchorList"></div>
+      <div class="controls">
+        <div class="line" id="cmdButtons"><button id="pingBtn">전체 점검</button></div>
+        <p class="note" id="cmdNote">점검: 앵커 3대가 Pi 명령에 응답하는지 확인합니다</p>
+      </div>
+    </section>
+    <section class="card"><h2>이벤트</h2><div class="events" id="events"></div></section>
+  </aside>
+</main>
+
+<script>
+"use strict";
+const POLL_MS = 500;
+const NS = "http://www.w3.org/2000/svg";
+const svg = document.getElementById("map");
+const layers = {};
+let mapKey = "";
+let unit = 0.1;            // metres per "UI unit", set from the map size
+const tagEls = new Map();  // tag id -> persistent SVG elements
+
+function el(name, attrs = {}, parent) {
+  const e = document.createElementNS(NS, name);
+  for (const [k, v] of Object.entries(attrs)) {
+    // CSS variables are not reliable in SVG presentation attributes; use style.
+    if (typeof v === "string" && v.startsWith("var(")) e.style.setProperty(k, v);
+    else e.setAttribute(k, v);
+  }
+  if (parent) parent.appendChild(e);
+  return e;
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const fmt = (v, d = 2) => (v == null || Number.isNaN(v) ? "–" : Number(v).toFixed(d));
+function ago(s) {
+  if (s == null) return "–";
+  if (s < 1) return "방금";
+  if (s < 60) return `${Math.round(s)}초 전`;
+  if (s < 3600) return `${Math.floor(s / 60)}분 전`;
+  return `${Math.floor(s / 3600)}시간 전`;
+}
+
+// ---- map: static layer (grid, room, anchors) rebuilt only when geometry changes
+function bounds(state) {
+  const xs = [], ys = [];
+  const r = state.room;
+  if (r) { xs.push(r.x0, r.x1); ys.push(r.y0, r.y1); }
+  state.anchors.forEach(a => { xs.push(a.x); ys.push(a.y); });
+  if (!xs.length) { xs.push(0, 5); ys.push(0, 4); }
+  const pad = 0.8;
+  return { x0: Math.min(...xs) - pad, x1: Math.max(...xs) + pad, y0: Math.min(...ys) - pad, y1: Math.max(...ys) + pad };
+}
+
+function buildStatic(state) {
+  const b = bounds(state);
+  const box = svg.getBoundingClientRect();
+  const key = JSON.stringify([b, state.room, state.anchors.map(a => [a.id, a.x, a.y]),
+                              Math.round(box.width), Math.round(box.height)]);
+  if (key === mapKey) return;
+  mapKey = key;
+  svg.textContent = "";
+  tagEls.clear();
+  const w = b.x1 - b.x0, h = b.y1 - b.y0;
+  // unit = metres per 14 screen px, so labels stay readable on phones and laptops.
+  const pxPerM = Math.min(box.width / w, box.height / h) || 50;
+  unit = 14 / pxPerM;
+  // y is flipped (screen y grows down, room y grows up): draw at (x, -y).
+  svg.setAttribute("viewBox", `${b.x0} ${-b.y1} ${w} ${h}`);
+
+  layers.grid = el("g", {}, svg);
+  const step = w > 40 || h > 40 ? 5 : w > 16 || h > 16 ? 2 : 1;
+  for (let x = Math.ceil(b.x0 / step) * step; x <= b.x1; x += step) {
+    el("line", { x1: x, y1: -b.y0, x2: x, y2: -b.y1, stroke: "var(--grid)", "stroke-width": unit * 0.08 }, layers.grid);
+    el("text", { x: x + unit * 0.2, y: -b.y0 - unit * 0.3, "font-size": unit * 0.8, fill: "var(--faint)" }, layers.grid).textContent = x;
+  }
+  for (let y = Math.ceil(b.y0 / step) * step; y <= b.y1; y += step) {
+    el("line", { x1: b.x0, y1: -y, x2: b.x1, y2: -y, stroke: "var(--grid)", "stroke-width": unit * 0.08 }, layers.grid);
+    if (y !== 0) el("text", { x: b.x0 + unit * 0.2, y: -y - unit * 0.2, "font-size": unit * 0.8, fill: "var(--faint)" }, layers.grid).textContent = y;
+  }
+  if (state.room) {
+    const r = state.room;
+    el("rect", { x: r.x0, y: -r.y1, width: r.x1 - r.x0, height: r.y1 - r.y0, fill: "none",
+                 stroke: "var(--sub)", "stroke-width": unit * 0.12 }, layers.grid);
+  }
+  layers.ranges = el("g", {}, svg);
+  layers.trails = el("g", {}, svg);
+  layers.anchors = el("g", {}, svg);
+  layers.tags = el("g", {}, svg);
+  layers.anchorEls = new Map();
+  state.anchors.forEach(a => {
+    const g = el("g", { transform: `translate(${a.x} ${-a.y})` }, layers.anchors);
+    const s = unit * 0.7;
+    const shape = el("path", { d: `M0 ${-s} L${s} ${s * 0.75} L${-s} ${s * 0.75} Z`, "stroke-width": unit * 0.12 }, g);
+    el("text", { x: s * 1.2, y: -s * 0.4, "font-size": unit * 1.0, "font-weight": 700, fill: "var(--text)" }, g).textContent = `A${a.id}`;
+    layers.anchorEls.set(a.id, shape);
+  });
+}
+
+function tagElements(id) {
+  if (tagEls.has(id)) return tagEls.get(id);
+  const t = {
+    ranges: el("g", {}, layers.ranges),
+    trail: el("path", { fill: "none", stroke: "var(--red)", "stroke-opacity": .45,
+                            "stroke-width": unit * 0.12, "stroke-linejoin": "round" }, layers.trails),
+    g: el("g", { class: "tag-g" }, layers.tags),
+  };
+  t.err = el("circle", { r: 0, fill: "var(--red-soft)" }, t.g);
+  t.pulse = el("circle", { r: unit * 0.6, fill: "none", stroke: "var(--red)", "stroke-width": unit * 0.1 }, t.g);
+  el("animate", { attributeName: "r", values: `${unit * 0.6};${unit * 2.2}`, dur: "1.6s", repeatCount: "indefinite" }, t.pulse);
+  el("animate", { attributeName: "opacity", values: "0.8;0", dur: "1.6s", repeatCount: "indefinite" }, t.pulse);
+  t.dot = el("circle", { r: unit * 0.6, stroke: "var(--card)", "stroke-width": unit * 0.15 }, t.g);
+  t.label = el("text", { x: unit * 1.0, y: -unit * 0.9, "font-size": unit * 1.0, "font-weight": 700 }, t.g);
+  tagEls.set(id, t);
+  return t;
+}
+
+function drawDynamic(state) {
+  state.anchors.forEach(a => {
+    const shape = layers.anchorEls.get(a.id);
+    if (!shape) return;
+    shape.style.fill = a.online ? "var(--green)" : "var(--card)";
+    shape.style.stroke = a.online ? "var(--green)" : "var(--gray)";
+  });
+  const anchorById = new Map(state.anchors.map(a => [a.id, a]));
+  const seen = new Set();
+  state.tags.forEach(tag => {
+    seen.add(tag.id);
+    const t = tagElements(tag.id);
+    const color = tag.lost ? "var(--gray)" : "var(--red)";
+    t.g.style.transform = `translate(${tag.x}px, ${-tag.y}px)`;
+    t.dot.style.fill = color;
+    t.pulse.style.display = tag.lost ? "none" : "";
+    t.err.setAttribute("r", Math.max(tag.rms, 0.05));
+    t.label.style.fill = color;
+    t.label.textContent = tag.lost ? `TAG-${tag.id} (마지막 위치)` : `TAG-${tag.id}`;
+    // Server splits the trail at time gaps so outages do not draw a jump.
+    t.trail.setAttribute("d", tag.trail.map(seg =>
+      seg.map(([x, y], i) => `${i ? "L" : "M"}${x} ${-y}`).join("")).join(""));
+    t.trail.style.display = tag.lost ? "none" : "";
+    // Range circles from the last solved cycle.
+    t.ranges.textContent = "";
+    if (!tag.lost) {
+      Object.entries(tag.ranges).forEach(([aid, r]) => {
+        const a = anchorById.get(Number(aid));
+        if (!a) return;
+        el("circle", { cx: a.x, cy: -a.y, r, fill: "none", stroke: "var(--range)", "stroke-opacity": .5,
+                       "stroke-width": unit * 0.08, "stroke-dasharray": `${unit * 0.4} ${unit * 0.3}` }, t.ranges);
+      });
+    }
+  });
+  for (const [id, t] of tagEls) {
+    if (!seen.has(id)) { t.g.remove(); t.trail.remove(); t.ranges.remove(); tagEls.delete(id); }
+  }
+}
+
+// ---- side panels
+function lostReason(state) {
+  const off = state.anchors.filter(a => !a.online).map(a => `A${a.id}`);
+  const online = state.anchors.length - off.length;
+  return online < 3
+    ? `앵커 ${off.join(", ")} 오프라인 — 2D 위치에는 앵커 3대가 필요합니다. 지도는 마지막 위치입니다.`
+    : "앵커는 모두 정상입니다. Tag 전원·배터리 또는 UWB 가림(벽, 몸, 금속)을 확인하세요. 지도는 마지막 위치입니다.";
+}
+
+function renderTags(state) {
+  const card = document.getElementById("tagInfo");
+  if (!state.tags.length) {
+    card.innerHTML = `<p class="empty">${state.db
+      ? "아직 계산된 위치가 없습니다. Tag 전원과 앵커 3대 상태를 확인하세요."
+      : "저장된 데이터가 없습니다. 수신기(fire_tag_receiver.py)가 실행 중인지, Anchor 0이 USB로 연결됐는지 확인하세요."}</p>`;
+    return;
+  }
+  card.innerHTML = state.tags.map(t => `
+    <div class="tag-head">
+      <span class="tag-name">TAG-${t.id}</span>
+      <span class="badge ${t.lost ? "lost" : "live"}">${t.lost ? "위치 갱신 끊김" : "추적 중"}</span>
+    </div>
+    ${t.lost ? `<p class="empty" style="margin-bottom:6px">${lostReason(state)}</p>` : ""}
+    <div class="coords">X ${fmt(t.x)} · Y ${fmt(t.y)} <small style="font-size:13px;color:var(--sub)">m</small></div>
+    <dl class="kv">
+      <dt>마지막 갱신</dt><dd>${ago(t.age_s)}</dd>
+      <dt>잔차 RMS</dt><dd>±${fmt(t.rms)} m</dd>
+      ${Object.entries(t.ranges).map(([a, r]) => `<dt>A${esc(a)} 거리</dt><dd>${fmt(r)} m</dd>`).join("")}
+    </dl>`).join('<hr style="border:0;border-top:1px solid var(--line);margin:12px 0">');
+}
+
+function renderAnchors(state) {
+  document.getElementById("anchorList").innerHTML = state.anchors.map(a => {
+    const total = (a.ok ?? 0) + (a.fail ?? 0);
+    const rate = total ? `${Math.round((100 * a.ok) / total)}%` : "–";
+    const link = a.id === 0 ? "USB" : a.link_rssi != null ? `${a.link_rssi} dBm` : "–";
+    return `<div class="row">
+      <span class="dot ${a.online ? "ok" : a.age_s == null ? "" : "bad"}"></span>
+      <span class="name">A${a.id}</span>
+      <span style="color:var(--sub)">(${fmt(a.x, 1)}, ${fmt(a.y, 1)})</span>
+      <span class="meta">${a.online ? `성공 ${rate} · ${link}` : a.age_s == null ? "수신 기록 없음" : `${ago(a.age_s)} 마지막 수신`}</span>
+    </div>`;
+  }).join("");
+}
+
+function renderEvents(state) {
+  const box = document.getElementById("events");
+  box.innerHTML = state.events.length
+    ? state.events.map(e => `<div class="ev ${/offline|lost|failed/.test(e.kind) ? "bad" : ""}">
+        <time>${ago(e.age_s)}</time><span>${esc(e.message)}</span></div>`).join("")
+    : '<p class="empty">이벤트 없음</p>';
+}
+
+// ---- controls (Pi -> anchors -> tag)
+const ACK_ICON = ok => (ok ? "✓" : "✗");
+let alertTag = 0;
+let alertDesired = false;
+let rebootKey = "";
+
+async function post(path, body) {
+  const res = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify(body) });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || res.status);
+  return data;
+}
+
+function note(id, text, cls = "") {
+  const n = document.getElementById(id);
+  n.textContent = text;
+  n.className = "note " + cls;
+}
+
+document.getElementById("alertBtn").addEventListener("click", async e => {
+  const turnOn = !alertDesired;
+  if (!turnOn && !confirm("요구조자 경보를 끌까요?")) return;
+  e.target.disabled = true;
+  try { await post("/api/alert", { tag: alertTag, on: turnOn }); alertDesired = turnOn; }
+  catch (err) { note("alertNote", `요청 실패: ${err.message}`, "bad"); }
+  finally { e.target.disabled = false; }
+});
+
+async function sendCommand(cmd, target, label) {
+  try {
+    const { id } = await post("/api/command", { cmd, target });
+    note("cmdNote", `${label} #${id} 전송 중…`);
+  } catch (err) { note("cmdNote", `${label} 실패: ${err.message}`, "bad"); }
+}
+document.getElementById("pingBtn").addEventListener("click", () => sendCommand("ping", "all", "전체 점검"));
+
+function renderControls(state) {
+  const tag = state.tags[0];
+  alertTag = tag ? tag.id : 0;
+  alertDesired = tag ? tag.alert_desired : alertDesired;
+  const btn = document.getElementById("alertBtn");
+  btn.disabled = !state.db;
+  btn.textContent = alertDesired ? "경보 끄기" : "경보 켜기";
+  btn.className = alertDesired ? "" : "danger";
+  if (!tag) note("alertNote", "Tag 위치가 수신되면 경보를 보낼 수 있습니다");
+  else if (alertDesired && tag.alert_confirmed) note("alertNote", "✓ Tag가 경보를 받았습니다 (LED 점멸 중)", "ok");
+  else if (alertDesired) note("alertNote", tag.lost ? "Tag 연결이 끊겨 전달 대기 중…" : "앵커를 거쳐 Tag로 전달 중…");
+  else if (tag.alert_confirmed) note("alertNote", "경보 해제 전달 중…");
+  else note("alertNote", "요구조자 Tag의 LED를 깜빡여 구조 접근을 알립니다");
+
+  // One reboot button per anchor, rebuilt only when the anchor list changes.
+  const key = state.anchors.map(a => a.id).join(",");
+  if (key !== rebootKey) {
+    rebootKey = key;
+    const box = document.getElementById("cmdButtons");
+    box.querySelectorAll(".reboot").forEach(b => b.remove());
+    state.anchors.forEach(a => {
+      const b = document.createElement("button");
+      b.className = "small reboot";
+      b.textContent = `A${a.id} 재시작`;
+      b.addEventListener("click", () => {
+        if (confirm(`Anchor ${a.id}를 재시작할까요? 약 3초간 위치 계산이 멈춥니다.`)) sendCommand("reboot", a.id, `A${a.id} 재시작`);
+      });
+      box.appendChild(b);
+    });
+  }
+
+  const c = state.commands[0];
+  if (c) {
+    const label = `${c.target === "all" ? "전체" : `A${c.target}`} ${c.cmd === "ping" ? "점검" : "재시작"} #${c.id}`;
+    const acks = Object.entries(c.acks).map(([a, ok]) => `A${a}${ACK_ICON(ok)}`).join(" ");
+    if (c.status === "done") note("cmdNote", `${label} 완료 (${ago(c.age_s)}): ${acks}`, "ok");
+    else if (c.status === "failed") note("cmdNote", `${label} 실패 (${ago(c.age_s)}): ${acks || "응답 없음"} — 이벤트 참고`, "bad");
+    else note("cmdNote", `${label} 전송 중… ${acks}`);
+  }
+}
+
+function setLink(ok, text) {
+  document.getElementById("linkDot").className = "dot " + (ok ? "ok" : "bad");
+  document.getElementById("linkText").textContent = text;
+}
+
+async function poll() {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 2000);
+  try {
+    const res = await fetch("/api/state", { cache: "no-store", signal: ctrl.signal });
+    if (!res.ok) throw new Error(res.status);
+    const state = await res.json();
+    buildStatic(state);
+    drawDynamic(state);
+    renderTags(state);
+    renderAnchors(state);
+    renderEvents(state);
+    renderControls(state);
+    setLink(true, "실시간");
+  } catch (e) {
+    setLink(false, "Pi 연결 끊김");
+  } finally {
+    clearTimeout(timer);
+    setTimeout(poll, POLL_MS);
+  }
+}
+poll();
+</script>
+</body>
+</html>
