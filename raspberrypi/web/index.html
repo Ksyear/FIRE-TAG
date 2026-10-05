@@ -323,7 +323,7 @@ function renderEvents(state) {
 }
 
 // ---- controls (Pi -> anchors -> tag)
-const ACK_ICON = ok => (ok ? "✓" : "✗");
+const ACK_TEXT = ok => (ok ? "성공" : "실패");
 let alertTag = 0;
 let alertDesired = false;
 let rebootKey = "";
@@ -368,7 +368,7 @@ function renderControls(state) {
   btn.textContent = alertDesired ? "경보 끄기" : "경보 켜기";
   btn.className = alertDesired ? "" : "danger";
   if (!tag) note("alertNote", "Tag 위치가 수신되면 경보를 보낼 수 있습니다");
-  else if (alertDesired && tag.alert_confirmed) note("alertNote", "✓ Tag가 경보를 받았습니다 (LED 점멸 중)", "ok");
+  else if (alertDesired && tag.alert_confirmed) note("alertNote", "Tag가 경보를 받았습니다 (LED 점멸 중)", "ok");
   else if (alertDesired) note("alertNote", tag.lost ? "Tag 연결이 끊겨 전달 대기 중…" : "앵커를 거쳐 Tag로 전달 중…");
   else if (tag.alert_confirmed) note("alertNote", "경보 해제 전달 중…");
   else note("alertNote", "요구조자 Tag의 LED를 깜빡여 구조 접근을 알립니다");
@@ -393,7 +393,7 @@ function renderControls(state) {
   const c = state.commands[0];
   if (c) {
     const label = `${c.target === "all" ? "전체" : `A${c.target}`} ${c.cmd === "ping" ? "점검" : "재시작"} #${c.id}`;
-    const acks = Object.entries(c.acks).map(([a, ok]) => `A${a}${ACK_ICON(ok)}`).join(" ");
+    const acks = Object.entries(c.acks).map(([a, ok]) => `A${a} ${ACK_TEXT(ok)}`).join(", ");
     if (c.status === "done") note("cmdNote", `${label} 완료 (${ago(c.age_s)}): ${acks}`, "ok");
     else if (c.status === "failed") note("cmdNote", `${label} 실패 (${ago(c.age_s)}): ${acks || "응답 없음"} — 이벤트 참고`, "bad");
     else note("cmdNote", `${label} 전송 중… ${acks}`);
