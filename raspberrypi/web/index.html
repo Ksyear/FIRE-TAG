@@ -100,6 +100,7 @@ svg text { font-family: var(--ui); }
       <span><i style="border-color:var(--range);border-top-style:dashed"></i>앵커별 측정 거리</span>
       <span><i style="border-color:var(--red)"></i>최근 30초 이동 경로</span>
       <span>원점(0,0) 왼쪽 아래 · 단위 m</span>
+      <span id="calNote" style="color:var(--amber)"></span>
     </div>
   </section>
 
@@ -278,8 +279,23 @@ function lostReason(state) {
     : "앵커는 모두 정상입니다. Tag 전원·배터리 또는 UWB 가림(벽, 몸, 금속)을 확인하세요. 지도는 마지막 위치입니다.";
 }
 
+function renderCalibration(state) {
+  const c = state.calibration;
+  const measuring = state.auto_calibrate && (!c || c.status !== "done");
+  document.getElementById("calNote").textContent = measuring ? "앵커 위치 측정 전: 지도는 임시 배치" : "";
+  if (!measuring) return "";
+  const n = c ? c.samples : 0, need = c ? c.needed : 100, pct = Math.min(100, Math.round((100 * n) / need));
+  return `<p class="tag-name" style="margin-bottom:6px">앵커 위치 자동 측정 중</p>
+    <p class="empty">${esc(c ? c.message : "Anchor 0 데이터를 기다리는 중입니다.")}</p>
+    <div style="height:8px;border-radius:4px;background:var(--grid);margin:10px 0 4px;overflow:hidden">
+      <div style="height:100%;width:${pct}%;background:var(--amber)"></div></div>
+    <p class="note" style="margin:0">샘플 ${n}개 (최소 ${need}개). 측정이 끝나면 위치 표시가 시작됩니다.</p>`;
+}
+
 function renderTags(state) {
   const card = document.getElementById("tagInfo");
+  const cal = renderCalibration(state);
+  if (cal) { card.innerHTML = cal; return; }
   if (!state.tags.length) {
     card.innerHTML = `<p class="empty">${state.db
       ? "아직 계산된 위치가 없습니다. Tag 전원과 앵커 3대 상태를 확인하세요."
