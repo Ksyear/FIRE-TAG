@@ -28,9 +28,17 @@ case "${1:-start}" in
     stop
     nohup python3 -u "$DIR/fire_tag_receiver.py" --db "$DIR/data/fire_tag.db" --record "$DIR/data/raw.jsonl" \
       > "$DIR/data/receiver.log" 2>&1 &
+    receiver_pid=$!
     nohup python3 -u "$DIR/fire_tag_web.py" --db "$DIR/data/fire_tag.db" --port "$PORT" > "$DIR/data/web.log" 2>&1 &
+    web_pid=$!
     sleep 2
-    pgrep -fl "$DIR/fire_tag_(receiver|web).py" || { echo "failed to start; see data/*.log" >&2; exit 1; }
+    if ! kill -0 "$receiver_pid" 2>/dev/null || ! kill -0 "$web_pid" 2>/dev/null; then
+      echo "receiver or dashboard failed to start:" >&2
+      tail -n 15 "$DIR/data/receiver.log" "$DIR/data/web.log" >&2
+      stop
+      exit 1
+    fi
+    pgrep -fl "$DIR/fire_tag_(receiver|web).py"
     for ip in $(hostname -I 2>/dev/null || ipconfig getifaddr en0); do
       echo "Dashboard: http://$ip:$PORT"
     done
