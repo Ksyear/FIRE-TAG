@@ -77,12 +77,20 @@ class Dashboard:
         now = time.time()
         anchors_cfg = {int(k): v for k, v in cfg["anchors"].items()}
         status, tags, events, commands, alert_desired = {}, [], [], [], {}
+        calibration = None
 
         db = self.connect()
         if db is not None:
             with db:
                 for r in db.execute("SELECT * FROM anchor_status"):
                     status[r["anchor"]] = r
+                try:
+                    r = db.execute("SELECT * FROM calibration WHERE id=1").fetchone()
+                    if r:
+                        calibration = {"status": r["status"], "samples": r["samples"], "needed": r["needed"],
+                                       "message": r["message"], "age_s": round(now - r["t"], 1)}
+                except sqlite3.OperationalError:
+                    pass  # receiver from before self-calibration
                 for r in db.execute("SELECT tag, alert_on FROM alert_desired"):
                     alert_desired[r["tag"]] = bool(r["alert_on"])
                 for r in db.execute("SELECT * FROM commands ORDER BY id DESC LIMIT ?", (COMMAND_LIMIT,)):
@@ -122,7 +130,8 @@ class Dashboard:
                 "alert_mask": s["alert_mask"] if s else None,
             })
         return {"db": db is not None, "anchors": anchors, "tags": tags, "events": events,
-                "commands": commands, "room": cfg.get("room")}
+                "commands": commands, "room": cfg.get("room"), "calibration": calibration,
+                "auto_calibrate": bool(cfg.get("auto_calibrate"))}
 
     def writable(self):
         db = self.connect()

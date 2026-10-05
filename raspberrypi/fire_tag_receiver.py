@@ -22,14 +22,16 @@ Live mode uses pyserial if installed, otherwise the standard library (termios).
 """
 
 import argparse
+import collections
 import csv
 import glob
 import json
 import math
-import sqlite3
 import os
 import select
+import sqlite3
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -81,6 +83,10 @@ CREATE TABLE IF NOT EXISTS commands (  -- queued by fire_tag_web.py
   acks TEXT NOT NULL DEFAULT '{}'           -- {"anchor": true/false}
 );
 CREATE INDEX IF NOT EXISTS commands_status ON commands(status);
+CREATE TABLE IF NOT EXISTS calibration (  -- anchor self-calibration status (one row)
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  t REAL, status TEXT, samples INTEGER, needed INTEGER, message TEXT, result TEXT
+);
 CREATE TABLE IF NOT EXISTS alert_desired (  -- set by fire_tag_web.py
   tag INTEGER PRIMARY KEY,
   alert_on INTEGER NOT NULL,
@@ -150,6 +156,13 @@ class Store:
             if 0 <= row["tag"] < MAX_TAGS:
                 mask |= 1 << row["tag"]
         return mask
+
+    def calibration(self, status, samples, needed, message, result=None):
+        self.db.execute(
+            "INSERT OR REPLACE INTO calibration (id, t, status, samples, needed, message, result) "
+            "VALUES (1,?,?,?,?,?,?)",
+            (time.time(), status, samples, needed, message, json.dumps(result) if result else None))
+        self.dirty = True
 
     def commit(self, now, force=False):
         if self.dirty and (force or now - self.last_commit >= self.COMMIT_INTERVAL_S):
@@ -322,7 +335,7 @@ def file_lines(path):
 # Receiver
 # ---------------------------------------------------------------------------
 class Receiver:
-    def __init__(self, config, csv_writer=None, store=None, link=None, live=True):
+    def __init__(self, config, csv_writer=None, store=None, link=None, live=True, config_path=None):
         self.anchors = {int(k): v for k, v in config["anchors"].items()}
         self.tag_z = config.get("tag_z", 0.0)
         self.group_timeout = config.get("group_timeout_s", 0.3)
@@ -332,7 +345,17 @@ class Receiver:
         self.store = store
         self.link = link
         self.live = live
-        self.groups = {}          # (tag, seq) -> {"t": first_seen, "ranges": {anchor: m}, "alert": bool}
+        self.groups = {}          # (tag, seq) -> {"t", "ranges": {anchor: m}, "slant": {anchor: m}, "alert"}
+        # Anchor self-calibration (config "auto_calibrate": true): positions are
+        # only shown after the anchor triangle has been measured from Tag ranges.
+        self.config = config
+        self.config_path = config_path
+        self.auto_cal = bool(config.get("auto_calibrate")) and len(self.anchors) == 3
+        self.cal_samples = collections.deque(maxlen=2000)
+        self.cal_thread = None
+        self.cal_result = None
+        self.cal_last = 0.0
+        self.cal_status = None
         self.anchor_seen = {}     # anchor -> last time any message arrived
         self.anchor_online = {}
         self.tag_seen = {}        # tag -> last time a position was solved
@@ -382,8 +405,9 @@ class Receiver:
             return
         tag, seq = int(msg["tag"]), int(msg["seq"])
         slant = msg["range_mm"] / 1000.0 - self.anchors[anchor].get("bias_m", 0.0)
-        group = self.groups.setdefault((tag, seq), {"t": now, "ranges": {}, "alert": False})
+        group = self.groups.setdefault((tag, seq), {"t": now, "ranges": {}, "slant": {}, "alert": False})
         group["ranges"][anchor] = horizontal_range(slant, self.anchors[anchor], self.tag_z)
+        group["slant"][anchor] = slant
         group["alert"] = group["alert"] or bool(msg.get("tag_alert"))
 
         # A newer cycle means older ones for this tag will not get more ranges.
@@ -406,6 +430,10 @@ class Receiver:
         if len(ranges) < 3:
             print(f"tag {tag} seq {seq:5d}  only {len(ranges)} range(s)       [{detail}]")
             return
+        if self.auto_cal:
+            if len(group["slant"]) == 3:
+                self.cal_samples.append(tuple(group["slant"][a] for a in sorted(group["slant"])))
+            return  # anchor positions not measured yet; a position would be wrong
         result = solve_position(self.anchors, ranges)
         if result is None:
             print(f"tag {tag} seq {seq:5d}  anchors are collinear, fix config.json")
@@ -496,6 +524,66 @@ class Receiver:
             self.alert_sent_at[anchor] = now
 
     # -- periodic checks ---------------------------------------------------
+    # -- anchor self-calibration ---------------------------------------------
+    def calibration_step(self, now):
+        import anchor_calibration as ac
+
+        needed = ac.MIN_SAMPLES
+        if self.cal_thread and not self.cal_thread.is_alive():
+            self.cal_thread = None
+            res = self.cal_result
+            if res and res["ok"]:
+                self.apply_calibration(res)
+                return
+            reason = ("Tag를 한 줄로만 움직였거나 거의 움직이지 않아 위치가 하나로 정해지지 않습니다. "
+                      "앵커 세 개 사이를 넓게 돌아다녀 주세요." if res and not res["unique"]
+                      else "측정값이 아직 고르지 않습니다. 계속 움직여 주세요.")
+            self.set_cal_status("collecting", reason, res)
+        if self.cal_thread is None:
+            n = len(self.cal_samples)
+            if n < needed:
+                self.set_cal_status("collecting", f"샘플 {n}/{needed}: Tag를 앵커 세 개 사이에서 넓게 움직여 주세요.")
+            elif now - self.cal_last >= 5:
+                self.cal_last = now
+                samples = list(self.cal_samples)
+                self.cal_thread = threading.Thread(target=lambda: setattr(self, "cal_result", ac.calibrate(samples)),
+                                                   daemon=True)
+                self.cal_thread.start()
+
+    def set_cal_status(self, status, message, result=None):
+        import anchor_calibration as ac
+
+        key = (status, message)
+        changed = key != self.cal_status
+        # Console: every 25 samples while collecting, otherwise on each new message.
+        print_key = (status, len(self.cal_samples) // 25 if status == "collecting" and "샘플" in message else message)
+        if print_key != getattr(self, "cal_printed", None):
+            self.cal_printed = print_key
+            print(f"[calibration] {message}")
+        if changed:
+            self.cal_status = key
+        mono = time.monotonic()
+        if self.store and (changed or mono - getattr(self, "cal_written", 0.0) >= 1.0):
+            self.cal_written = mono
+            self.store.calibration(status, len(self.cal_samples), ac.MIN_SAMPLES, message, result)
+
+    def apply_calibration(self, res):
+        for k, p in res["anchors"].items():
+            self.anchors[int(k)].update(p)
+        self.auto_cal = False
+        d = res["distances"]
+        msg = (f"앵커 위치 자동 측정 완료: A0–A1 {d['01']:.2f} m, A0–A2 {d['02']:.2f} m, "
+               f"A1–A2 {d['12']:.2f} m (잔차 {res['rms_m'] * 100:.0f} cm, 샘플 {res['samples']}개)")
+        self.event("calibrated", msg)
+        self.set_cal_status("done", msg, res)
+        if self.config_path:  # keep the result; the web server redraws the map from config.json
+            for k, p in res["anchors"].items():
+                self.config["anchors"][str(k)].update(p)
+            self.config["auto_calibrate"] = False
+            self.config["calibration"] = {**res, "t": time.strftime("%Y-%m-%d %H:%M:%S")}
+            Path(self.config_path).write_text(json.dumps(self.config, ensure_ascii=False, indent=2) + "\n",
+                                              encoding="utf-8")
+
     def tick(self, now):
         for key, group in list(self.groups.items()):
             if now - group["t"] > self.group_timeout:
@@ -512,6 +600,8 @@ class Receiver:
         if self.link and self.store and now - self.last_cmd_check >= 0.2:
             self.last_cmd_check = now
             self.process_commands(now)
+        if self.auto_cal:
+            self.calibration_step(now)
         if self.store:
             self.store.commit(now)
 
@@ -557,7 +647,7 @@ def main():
     baud = args.baud or config.get("serial_baud", 115200)  # must match firmware SERIAL_BAUD
     link = SerialLink(args.port or find_anchor_port(), baud) if live else None
     lines = link.lines() if link else file_lines(args.replay)
-    rx = Receiver(config, csv_writer, store, link, live=live)
+    rx = Receiver(config, csv_writer, store, link, live=live, config_path=args.config)
     try:
         for line in lines:
             now = time.monotonic()

@@ -1,11 +1,11 @@
 {
-  "_comment": "Metres in the room frame: origin (0,0) = a room corner, x to the right, y away from you (drawn upward on the dashboard). Measure anchors with a tape after mounting. z = antenna height. bias_m is subtracted from each anchor's range after calibration (start at 0). room is only drawn on the dashboard; remove it to auto-fit to the anchors.",
+  "_comment": "Metres. auto_calibrate=true: the receiver measures the anchor triangle from Tag ranges while the Tag moves, writes x/y here and sets auto_calibrate=false. Until then the x/y below are placeholders. Anchors and Tag are assumed at about the same height (z equal). bias_m is subtracted from each anchor's range. Add \"room\": {\"x0\":..,\"y0\":..,\"x1\":..,\"y1\":..} to draw a room outline.",
+  "auto_calibrate": true,
   "anchors": {
-    "0": {"x": 0.0, "y": 0.0, "z": 1.5, "bias_m": 0.0},
-    "1": {"x": 5.0, "y": 0.0, "z": 1.5, "bias_m": 0.0},
-    "2": {"x": 2.5, "y": 4.0, "z": 1.5, "bias_m": 0.0}
+    "0": {"x": 0.0, "y": 0.0, "z": 1.0, "bias_m": 0.0},
+    "1": {"x": 3.0, "y": 0.0, "z": 1.0, "bias_m": 0.0},
+    "2": {"x": 1.5, "y": 2.5, "z": 1.0, "bias_m": 0.0}
   },
-  "room": {"x0": 0.0, "y0": 0.0, "x1": 5.0, "y1": 4.0},
   "tag_z": 1.0,
   "serial_baud": 115200,
   "group_timeout_s": 0.3,
