@@ -42,4 +42,4 @@ Files: `raspberrypi/anchor_pair_calibration.py`, `fire_tag_receiver.py`, `config
 - [x] 공식 패키지 esptool 준비, 컴파일된 펌웨어를 대상 보드에 업로드하고 검증.
 - [x] Pi 코드 배포, 세 쌍 측정 및 전체 점검·좌표 갱신 확인.
 - [x] 실제 대시보드 영상, 원본 기록, 보고서를 로컬에 저장.
-- [ ] 코드 검토, 검증 후 GitHub PR 생성. 미완료 실기 항목은 사실대로 기록.
+- [x] 코드 검토, 검증 후 GitHub PR 생성. 미완료 실기 항목은 사실대로 기록. (PR #5)
