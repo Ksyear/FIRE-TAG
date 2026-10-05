@@ -1,0 +1,46 @@
+# port /dev/cu.usbserial-140 @115200, capture started 2026-10-05 17:50:59.930  +  0.001s
+2026-10-05 17:51:00.088  +  0.159s  ets Jul 29 2019 12:21:46
+2026-10-05 17:51:00.088  +  0.159s  
+2026-10-05 17:51:00.093  +  0.164s  rst:0x1 (POWERON_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+2026-10-05 17:51:00.099  +  0.170s  configsip: 0, SPIWP:0xee
+2026-10-05 17:51:00.102  +  0.173s  clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+2026-10-05 17:51:00.104  +  0.175s  mode:DIO, clock div:1
+2026-10-05 17:51:00.107  +  0.178s  load:0x3fff0030,len:4640
+2026-10-05 17:51:00.110  +  0.181s  load:0x40078000,len:15592
+2026-10-05 17:51:00.110  +  0.181s  load:0x40080400,len:3164
+2026-10-05 17:51:00.113  +  0.184s  entry 0x4008059c
+2026-10-05 17:51:00.429  +  0.500s  # FIRE-TAG Tag (DS-TWR initiator) TAG_ID=0
+2026-10-05 17:51:00.475  +  0.546s  DEVICE ID: deca0302
+2026-10-05 17:51:00.478  +  0.549s  PLL is locked..
+2026-10-05 17:51:00.478  +  0.549s  PGF cal complete..
+2026-10-05 17:51:00.483  +  0.554s  # UWB ready: DEV_ID=0xDECA0302 channel=9
+2026-10-05 17:51:01.296  +  1.367s  # tag=0 cycle=9 alert=off  A0 6/9 (NO_RESP)  A1 0/9 (NO_RESP)  A2 0/9 (NO_RESP)
+2026-10-05 17:51:02.295  +  2.366s  # tag=0 cycle=19 alert=off  A0 10/10  A1 0/10 (NO_RESP)  A2 0/10 (NO_RESP)
+2026-10-05 17:51:03.295  +  3.366s  # tag=0 cycle=29 alert=off  A0 10/10  A1 0/10 (NO_RESP)  A2 0/10 (NO_RESP)
+2026-10-05 17:51:04.295  +  4.366s  # tag=0 cycle=39 alert=off  A0 10/10  A1 0/10 (NO_RESP)  A2 0/10 (NO_RESP)
+2026-10-05 17:51:05.295  +  5.366s  # tag=0 cycle=49 alert=off  A0 10/10  A1 0/10 (NO_RESP)  A2 0/10 (NO_RESP)
+2026-10-05 17:51:06.295  +  6.366s  # tag=0 cycle=59 alert=off  A0 10/10  A1 0/10 (NO_RESP)  A2 0/10 (NO_RESP)
+2026-10-05 17:51:07.295  +  7.366s  # tag=0 cycle=69 alert=off  A0 10/10  A1 0/10 (NO_RESP)  A2 0/10 (NO_RESP)
+2026-10-05 17:51:08.295  +  8.366s  # tag=0 cycle=79 alert=off  A0 10/10  A1 0/10 (NO_RESP)  A2 0/10 (NO_RESP)
+2026-10-05 17:51:09.295  +  9.367s  # tag=0 cycle=89 alert=off  A0 10/10  A1 0/10 (NO_RESP)  A2 0/10 (NO_RESP)
+2026-10-05 17:51:10.295  + 10.366s  # tag=0 cycle=99 alert=ON  A0 10/10  A1 0/10 (NO_RESP)  A2 0/10 (NO_RESP)
+2026-10-05 17:51:11.295  + 11.366s  # tag=0 cycle=109 alert=ON  A0 10/10  A1 0/10 (NO_RESP)  A2 0/10 (NO_RESP)
+2026-10-05 17:51:12.296  + 12.367s  # tag=0 cycle=119 alert=ON  A0 10/10  A1 0/10 (NO_RESP)  A2 0/10 (NO_RESP)
+2026-10-05 17:51:13.295  + 13.366s  # tag=0 cycle=129 alert=ON  A0 10/10  A1 0/10 (NO_RESP)  A2 0/10 (NO_RESP)
+2026-10-05 17:51:14.295  + 14.366s  # tag=0 cycle=139 alert=ON  A0 10/10  A1 0/10 (NO_RESP)  A2 0/10 (NO_RESP)
+2026-10-05 17:51:15.295  + 15.366s  # tag=0 cycle=149 alert=ON  A0 10/10  A1 0/10 (NO_RESP)  A2 0/10 (NO_RESP)
+2026-10-05 17:51:16.295  + 16.366s  # tag=0 cycle=159 alert=ON  A0 10/10  A1 0/10 (NO_RESP)  A2 0/10 (NO_RESP)
+2026-10-05 17:51:17.295  + 17.366s  # tag=0 cycle=169 alert=ON  A0 10/10  A1 0/10 (NO_RESP)  A2 0/10 (NO_RESP)
+2026-10-05 17:51:18.295  + 18.366s  # tag=0 cycle=179 alert=ON  A0 10/10  A1 0/10 (NO_RESP)  A2 0/10 (NO_RESP)
+2026-10-05 17:51:19.295  + 19.366s  # tag=0 cycle=189 alert=ON  A0 10/10  A1 0/10 (NO_RESP)  A2 0/10 (NO_RESP)
+2026-10-05 17:51:20.295  + 20.366s  # tag=0 cycle=199 alert=off  A0 10/10  A1 0/10 (NO_RESP)  A2 0/10 (NO_RESP)
+2026-10-05 17:51:21.296  + 21.366s  # tag=0 cycle=209 alert=off  A0 10/10  A1 0/10 (NO_RESP)  A2 0/10 (NO_RESP)
+2026-10-05 17:51:22.295  + 22.366s  # tag=0 cycle=219 alert=off  A0 10/10  A1 0/10 (NO_RESP)  A2 0/10 (NO_RESP)
+2026-10-05 17:51:23.296  + 23.366s  # tag=0 cycle=229 alert=off  A0 10/10  A1 0/10 (NO_RESP)  A2 0/10 (NO_RESP)
+2026-10-05 17:51:24.296  + 24.367s  # tag=0 cycle=239 alert=off  A0 10/10  A1 0/10 (NO_RESP)  A2 0/10 (NO_RESP)
+2026-10-05 17:51:25.295  + 25.366s  # tag=0 cycle=249 alert=off  A0 10/10  A1 0/10 (NO_RESP)  A2 0/10 (NO_RESP)
+2026-10-05 17:51:26.295  + 26.366s  # tag=0 cycle=259 alert=off  A0 10/10  A1 0/10 (NO_RESP)  A2 0/10 (NO_RESP)
+2026-10-05 17:51:27.295  + 27.366s  # tag=0 cycle=269 alert=off  A0 10/10  A1 0/10 (NO_RESP)  A2 0/10 (NO_RESP)
+2026-10-05 17:51:28.296  + 28.367s  # tag=0 cycle=279 alert=off  A0 10/10  A1 0/10 (NO_RESP)  A2 0/10 (NO_RESP)
+2026-10-05 17:51:29.296  + 29.367s  # tag=0 cycle=289 alert=off  A0 10/10  A1 0/10 (NO_RESP)  A2 0/10 (NO_RESP)
+# capture ended 2026-10-05 17:51:29.941  + 30.012s

@@ -419,7 +419,7 @@ class Receiver:
         if expected <= {int(a) for a in acks}:
             ok = all(acks[str(a)] for a in expected)
             self.store.update_command(row["id"], status="done" if ok else "failed", acks=json.dumps(acks))
-            result = " ".join(f"A{a}{'✓' if acks[str(a)] else '✗'}" for a in sorted(expected))
+            result = ", ".join(f"A{a} {'성공' if acks[str(a)] else '실패'}" for a in sorted(expected))
             self.event("command_done" if ok else "command_failed", f"{self.command_label(row)}: {result}")
         else:
             self.store.update_command(row["id"], acks=json.dumps(acks))

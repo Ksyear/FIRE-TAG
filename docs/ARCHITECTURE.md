@@ -358,12 +358,18 @@ classDiagram
 
 ## 7. 실기 확인 기록 (2026-10-05)
 
+[![Tag와 Anchor 0 실기 통신 기록](evidence/2026-10-05_tag-anchor0/evidence.png)](evidence/2026-10-05_tag-anchor0/)
+
 | 항목 | 결과 |
 |---|---|
-| Anchor 0 (DevKitC, MAC `0C:B8:15:A6:25:A8`) | UWB 초기화(`DEV_ID 0xDECA0302`, ch9, PLL 잠금), ESP-NOW 시작, Mac에서 `CMD 7 255 ping 0` → ACK |
-| 요구조자 Tag (LOLIN D32, MAC `B0:CB:D8:EB:94:EC`) | UWB 초기화, Anchor 0과 거리측정 **10/10 매초**(100%), Anchor 1·2는 꺼져 있어 NO_RESP |
-| Tag ↔ Anchor 0 거리 (12초, 115회) | 평균 227 mm, 중앙값 236 mm, 표준편차 40 mm, 사이클 누락 0. 실제 거리를 재서 `bias_m`를 정해야 함 |
-| Mac USB 경로 (허브 2단) | 116줄 중 1줄 깨짐(약 0.9%), 바이트 유실·조각 반복 관찰. 업로드는 일반 속도에서 실패하고 안전 모드(38400, `--no-stub`)에서 성공 |
+| Anchor 0 (DevKitC, MAC `0C:B8:15:A6:25:A8`) | UWB 초기화(`DEV_ID 0xDECA0302`, ch9, PLL 잠금), ESP-NOW 시작 |
+| 요구조자 Tag (LOLIN D32, MAC `B0:CB:D8:EB:94:EC`) | UWB 초기화, Anchor 0과 거리측정 매초 10/10. Anchor 1·2는 꺼져 있어 NO_RESP |
+| Tag → Anchor 0 거리 (30초) | 292회(초당 10회), 깨진 줄 0, 사이클 누락 0, 평균 234 mm·표준편차 29 mm(보정 전) |
+| Mac → Anchor 0 → Tag 경보 | 켜기·끄기 모두 Anchor 0 ACK 후 148 ms 만에 Tag 회신이 거리 보고에 실려 돌아옴 |
+| Mac USB 경로 (허브 2단) | 앞선 12초 기록에서 116줄 중 1줄 깨짐. 일반 속도 업로드 실패 → 안전 모드(38400, `--no-stub`)로 성공 |
+| 아직 확인하지 않은 것 | 위치(x, y): 앵커 3대 필요. 실제 거리 대비 오차: 줄자 측정 전. Anchor 1·2, Pi 연동 |
+
+원본 로그와 기록 방법은 [docs/evidence/2026-10-05_tag-anchor0](evidence/2026-10-05_tag-anchor0/)에 있습니다.
 
 ## 8. 결정이 필요한 것
 
