@@ -1,0 +1,13 @@
+Port: /dev/cu.usbserial-0001
+Baud: 9600
+
+RAW=02 03 CA DE  DEV_ID=0xDECA0302  PASS: device ID matches.
+RAW=02 03 CA DE  DEV_ID=0xDECA0302  PASS: device ID matches.
+RAW=02 03 CA DE  DEV_ID=0xDECA0302  PASS: device ID matches.
+RAW=02 03 CA DE  DEV_ID=0xDECA0302  PASS: device ID matches.
+RAW=02 03 CA DE  DEV_ID=0xDECA0302  PASS: device ID matches.
+RAW=02 03 CA DE  DEV_ID=0xDECA0302  PASS: device ID matches.
+RAW=02 03 CA DE  DEV_ID=0xDECA0302  PASS: device ID matches.
+RAW=02 03 CA DE  DEV_ID=0xDECA0302  PASS: device ID matches.
+RAW=02 03 CA DE  DEV_ID=0xDECA0302  PASS: device ID matches.
+RAW=02 03 CA DE  DEV_ID=0xDECA0302  PASS: device ID matches.

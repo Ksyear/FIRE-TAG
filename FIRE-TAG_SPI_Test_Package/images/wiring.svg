@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2200" height="1500" viewBox="0 0 2200 1500">
+<title>FIRE-TAG ESP32와 DWM3000EVB 신호 배선도</title>
+<desc>GPIO18 SCK, GPIO19 MISO, GPIO23 MOSI, GPIO27 CS, GPIO26 RST, GPIO34 IRQ. 3V3 전원, 공통 GND, WAKEUP은 GND. J1은 2번과 3번 연결. 실제 핀 위치를 나타내는 그림이 아닙니다.</desc>
+<rect width="2200" height="1500" fill="#f3f6fa"/>
+<text x="80" y="103.14" fill="#1c3045" font-size="58" font-weight="600" text-anchor="start" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">FIRE-TAG  ·  ESP32 ↔ DWM3000EVB 배선도</text>
+<text x="82" y="161.56" fill="#53657a" font-size="32" font-weight="400" text-anchor="start" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">ESP32 DevKitC / LOLIN D32 공통  |  SPI Mode 0 · 1 MHz  |  현재 코드 Serial 9600</text>
+<rect x="80" y="195" width="2040" height="65" rx="12" fill="#e7eef8" stroke="none" stroke-width="2"/>
+<text x="105" y="235.9" fill="#1c3045" font-size="30" font-weight="400" text-anchor="start" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">신호 연결도입니다. 실제 보드의 핀 위치 대신 실크 인쇄와 GPIO 번호를 확인하십시오.</text>
+<rect x="80" y="300" width="590" height="750" rx="18" fill="#ffffff" stroke="#ced9e5" stroke-width="2"/>
+<rect x="1450" y="300" width="670" height="750" rx="18" fill="#ffffff" stroke="#ced9e5" stroke-width="2"/>
+<text x="125" y="363.52" fill="#1c3045" font-size="44" font-weight="600" text-anchor="start" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">ESP32 MCU</text>
+<text x="1495" y="363.52" fill="#1c3045" font-size="44" font-weight="600" text-anchor="start" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">DWM3000EVB</text>
+<text x="125" y="407.41" fill="#53657a" font-size="27" font-weight="400" text-anchor="start" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">USB로 전원 공급 / MCU 보드 1개</text>
+<text x="1495" y="407.41" fill="#53657a" font-size="27" font-weight="400" text-anchor="start" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">UWB 보드 1개 / 신호명 기준</text>
+<text x="125" y="481.56" fill="#1c3045" font-size="32" font-weight="600" text-anchor="start" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">3V3</text>
+<text x="1495" y="481.56" fill="#1c3045" font-size="32" font-weight="600" text-anchor="start" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">3V3  ·  CON2</text>
+<polyline points="670,470 1450,470" fill="none" stroke="#cf3e45" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="670" cy="470" r="8" fill="#cf3e45"/>
+<circle cx="1450" cy="470" r="8" fill="#cf3e45"/>
+<text x="1060" y="449.75" fill="#cf3e45" font-size="25" font-weight="400" text-anchor="middle" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">3.3 V 전원</text>
+<polygon points="1418,470 1395,461 1395,479" fill="#cf3e45"/>
+<text x="125" y="545.56" fill="#1c3045" font-size="32" font-weight="600" text-anchor="start" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">GND</text>
+<text x="1495" y="545.56" fill="#1c3045" font-size="32" font-weight="600" text-anchor="start" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">GND  ·  CON2</text>
+<polyline points="670,534 1450,534" fill="none" stroke="#596572" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="670" cy="534" r="8" fill="#596572"/>
+<circle cx="1450" cy="534" r="8" fill="#596572"/>
+<text x="1060" y="513.75" fill="#596572" font-size="25" font-weight="400" text-anchor="middle" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">공통 접지</text>
+<text x="125" y="609.56" fill="#1c3045" font-size="32" font-weight="600" text-anchor="start" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">GPIO18  /  SCK</text>
+<text x="1495" y="609.56" fill="#1c3045" font-size="32" font-weight="600" text-anchor="start" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">SPI CLK  ·  CON1</text>
+<polyline points="670,598 1450,598" fill="none" stroke="#b86a16" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="670" cy="598" r="8" fill="#b86a16"/>
+<circle cx="1450" cy="598" r="8" fill="#b86a16"/>
+<text x="1060" y="577.75" fill="#b86a16" font-size="25" font-weight="400" text-anchor="middle" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">SPI 클럭</text>
+<polygon points="1418,598 1395,589 1395,607" fill="#b86a16"/>
+<text x="125" y="673.56" fill="#1c3045" font-size="32" font-weight="600" text-anchor="start" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">GPIO19  /  MISO</text>
+<text x="1495" y="673.56" fill="#1c3045" font-size="32" font-weight="600" text-anchor="start" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">SPI MISO  ·  CON1</text>
+<polyline points="670,662 1450,662" fill="none" stroke="#176fbc" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="670" cy="662" r="8" fill="#176fbc"/>
+<circle cx="1450" cy="662" r="8" fill="#176fbc"/>
+<text x="1060" y="641.75" fill="#176fbc" font-size="25" font-weight="400" text-anchor="middle" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">EVB → ESP32</text>
+<polygon points="702,662 725,653 725,671" fill="#176fbc"/>
+<text x="125" y="737.56" fill="#1c3045" font-size="32" font-weight="600" text-anchor="start" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">GPIO23  /  MOSI</text>
+<text x="1495" y="737.56" fill="#1c3045" font-size="32" font-weight="600" text-anchor="start" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">SPI MOSI  ·  CON1</text>
+<polyline points="670,726 1450,726" fill="none" stroke="#278259" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="670" cy="726" r="8" fill="#278259"/>
+<circle cx="1450" cy="726" r="8" fill="#278259"/>
+<text x="1060" y="705.75" fill="#278259" font-size="25" font-weight="400" text-anchor="middle" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">ESP32 → EVB</text>
+<polygon points="1418,726 1395,717 1395,735" fill="#278259"/>
+<text x="125" y="801.56" fill="#1c3045" font-size="32" font-weight="600" text-anchor="start" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">GPIO27  /  CS</text>
+<text x="1495" y="801.56" fill="#1c3045" font-size="32" font-weight="600" text-anchor="start" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">SPI CSn  ·  CON1</text>
+<polyline points="670,790 1450,790" fill="none" stroke="#8054ae" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="670" cy="790" r="8" fill="#8054ae"/>
+<circle cx="1450" cy="790" r="8" fill="#8054ae"/>
+<text x="1060" y="769.75" fill="#8054ae" font-size="25" font-weight="400" text-anchor="middle" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">LOW에서 선택</text>
+<polygon points="1418,790 1395,781 1395,799" fill="#8054ae"/>
+<text x="125" y="865.56" fill="#1c3045" font-size="32" font-weight="600" text-anchor="start" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">GPIO26  /  RST</text>
+<text x="1495" y="865.56" fill="#1c3045" font-size="32" font-weight="600" text-anchor="start" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">RSTn  ·  CON4</text>
+<polyline points="670,854 1450,854" fill="none" stroke="#af5b29" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="670" cy="854" r="8" fill="#af5b29"/>
+<circle cx="1450" cy="854" r="8" fill="#af5b29"/>
+<text x="1060" y="833.75" fill="#af5b29" font-size="25" font-weight="400" text-anchor="middle" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">LOW → 입력으로 해제</text>
+<polygon points="1418,854 1395,845 1395,863" fill="#af5b29"/>
+<text x="125" y="929.56" fill="#1c3045" font-size="32" font-weight="600" text-anchor="start" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">GPIO34  /  IRQ</text>
+<text x="1495" y="929.56" fill="#1c3045" font-size="32" font-weight="600" text-anchor="start" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">IRQ  ·  CON1</text>
+<polyline points="670,918 1450,918" fill="none" stroke="#187f91" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="670" cy="918" r="8" fill="#187f91"/>
+<circle cx="1450" cy="918" r="8" fill="#187f91"/>
+<text x="1060" y="897.75" fill="#187f91" font-size="25" font-weight="400" text-anchor="middle" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">연결 / 이 시험에서는 미검증</text>
+<polygon points="702,918 725,909 725,927" fill="#187f91"/>
+<text x="125" y="993.56" fill="#1c3045" font-size="32" font-weight="600" text-anchor="start" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">GND  /  같은 접지</text>
+<text x="1495" y="993.56" fill="#1c3045" font-size="32" font-weight="600" text-anchor="start" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">WAKEUP  ·  CON1</text>
+<polyline points="670,982 1450,982" fill="none" stroke="#596572" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="670" cy="982" r="8" fill="#596572"/>
+<circle cx="1450" cy="982" r="8" fill="#596572"/>
+<text x="1060" y="961.75" fill="#596572" font-size="25" font-weight="400" text-anchor="middle" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">사용하지 않아 GND에 연결</text>
+<rect x="80" y="1100" width="930" height="300" rx="18" fill="#ffffff" stroke="#ced9e5" stroke-width="2"/>
+<rect x="1040" y="1100" width="1080" height="300" rx="18" fill="#ffffff" stroke="#ced9e5" stroke-width="2"/>
+<text x="115" y="1164.88" fill="#1c3045" font-size="36" font-weight="600" text-anchor="start" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">J1 전원 점퍼</text>
+<text x="115" y="1215.73" fill="#cf3e45" font-size="31" font-weight="600" text-anchor="start" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">2번–3번 연결  ·  3V3_Arduino 사용</text>
+<rect x="160" y="1250" width="62" height="62" rx="8" fill="#f4f6fa" stroke="#93a7bb" stroke-width="2"/>
+<text x="191" y="1287.56" fill="#1c3045" font-size="32" font-weight="600" text-anchor="middle" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">1</text>
+<rect x="290" y="1250" width="62" height="62" rx="8" fill="#f4f6fa" stroke="#93a7bb" stroke-width="2"/>
+<text x="321" y="1287.56" fill="#1c3045" font-size="32" font-weight="600" text-anchor="middle" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">2</text>
+<rect x="420" y="1250" width="62" height="62" rx="8" fill="#f4f6fa" stroke="#93a7bb" stroke-width="2"/>
+<text x="451" y="1287.56" fill="#1c3045" font-size="32" font-weight="600" text-anchor="middle" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">3</text>
+<polyline points="321,1250 321,1235 451,1235 451,1250" fill="none" stroke="#cf3e45" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="321" cy="1250" r="6" fill="#cf3e45"/>
+<circle cx="451" cy="1250" r="6" fill="#cf3e45"/>
+<text x="555" y="1291.9" fill="#cf3e45" font-size="30" font-weight="400" text-anchor="start" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">2–3 단락</text>
+<text x="115" y="1370.75" fill="#53657a" font-size="25" font-weight="400" text-anchor="start" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">핀 번호를 확인하십시오. 그림의 좌우는 전기적 표시입니다.</text>
+<text x="1075" y="1164.88" fill="#1c3045" font-size="36" font-weight="600" text-anchor="start" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">연결 조건과 시험 범위</text>
+<text x="1075" y="1219.07" fill="#1c3045" font-size="29" font-weight="400" text-anchor="start" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">EVB 3V3에 3.3 V 공급 / 이 배선에서는 EVB 5V 미연결</text>
+<text x="1075" y="1269.07" fill="#1c3045" font-size="29" font-weight="400" text-anchor="start" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">RSTn: 오픈 드레인 LOW 후 해제 / HIGH 출력 금지</text>
+<text x="1075" y="1319.07" fill="#1c3045" font-size="29" font-weight="400" text-anchor="start" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">GND와 WAKEUP의 접지는 같은 전기적 GND입니다.</text>
+<text x="1075" y="1369.07" fill="#1c3045" font-size="29" font-weight="400" text-anchor="start" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">DEV_ID 읽기 시험 / IRQ·무선 통신·거리 측정은 미검증</text>
+<text x="80" y="1460.75" fill="#53657a" font-size="25" font-weight="400" text-anchor="start" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, sans-serif">근거: Qorvo DWM3000EVB QSG Rev A pp.3,7 · DWM3000 Data Sheet Rev B pp.11,12  |  2026-10-05</text>
+</svg>

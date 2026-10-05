@@ -1,0 +1,16 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+
+# Raspberry Pi runtime data (SQLite DB, recordings, CSV exports)
+raspberrypi/data/
+*.db
+*.db-wal
+*.db-shm
+*.jsonl
+
+# Arduino build output (build.sh writes to $TMPDIR, but keep local builds out too)
+build/
