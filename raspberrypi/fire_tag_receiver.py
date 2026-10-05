@@ -18,7 +18,7 @@ requested on the dashboard is kept in sync on every anchor.
   python3 fire_tag_receiver.py --record raw.jsonl --csv positions.csv
   python3 fire_tag_receiver.py --replay raw.jsonl     # re-run a recorded session
 
-Needs pyserial for live mode:  sudo apt install python3-serial
+Live mode uses pyserial if installed, otherwise the standard library (termios).
 """
 
 import argparse
@@ -27,6 +27,8 @@ import glob
 import json
 import math
 import sqlite3
+import os
+import select
 import sys
 import time
 from pathlib import Path
@@ -238,25 +240,66 @@ def find_anchor_port():
 
 
 class SerialLink:
-    """Anchor 0's USB serial: JSON lines in, CMD lines out."""
+    """Anchor 0's USB serial: JSON lines in, CMD lines out.
+
+    Uses pyserial when installed; otherwise opens the port with termios from
+    the standard library, so the Pi can run without installing packages.
+    """
 
     def __init__(self, port, baud):
-        import serial  # imported here so --replay works without pyserial
+        try:
+            import serial  # imported here so --replay works without pyserial
+        except ImportError:
+            serial = None
+        if serial:
+            self.ser = serial.Serial()
+            self.ser.port = port
+            self.ser.baudrate = baud
+            self.ser.timeout = 0.1
+            # Keep DTR/RTS low so opening the port does not reset the ESP32.
+            self.ser.dtr = False
+            self.ser.rts = False
+            self.ser.open()
+            self._read = lambda: self.ser.read(512)
+            self._write = self.ser.write
+            backend = "pyserial"
+        else:
+            self.fd = self._open_termios(port, baud)
+            self._read = self._read_termios
+            self._write = lambda data: os.write(self.fd, data)
+            backend = "termios"
+        print(f"# listening on {port} @ {baud} ({backend})", file=sys.stderr)
 
-        self.ser = serial.Serial()
-        self.ser.port = port
-        self.ser.baudrate = baud
-        self.ser.timeout = 0.1
-        # Keep DTR/RTS low so opening the port does not reset the ESP32.
-        self.ser.dtr = False
-        self.ser.rts = False
-        self.ser.open()
-        print(f"# listening on {port} @ {baud}", file=sys.stderr)
+    @staticmethod
+    def _open_termios(port, baud):
+        import fcntl
+        import struct
+        import termios
+        import tty
+
+        fd = os.open(port, os.O_RDWR | os.O_NOCTTY | os.O_NONBLOCK)
+        tty.setraw(fd)
+        attrs = termios.tcgetattr(fd)
+        attrs[4] = attrs[5] = getattr(termios, f"B{baud}")
+        attrs[2] |= termios.CLOCAL | termios.CREAD
+        attrs[2] &= ~(termios.HUPCL | getattr(termios, "CRTSCTS", 0))
+        termios.tcsetattr(fd, termios.TCSANOW, attrs)
+        # Same as pyserial path: DTR/RTS low so the ESP32 keeps running.
+        fcntl.ioctl(fd, termios.TIOCMBIC, struct.pack("I", termios.TIOCM_DTR | termios.TIOCM_RTS))
+        return fd
+
+    def _read_termios(self):
+        if not select.select([self.fd], [], [], 0.1)[0]:
+            return b""
+        data = os.read(self.fd, 512)
+        if not data:  # readable but empty: the device was unplugged
+            raise OSError("serial port closed")
+        return data
 
     def lines(self):
         buf = b""
         while True:
-            chunk = self.ser.read(512)
+            chunk = self._read()
             if not chunk:
                 yield None  # idle tick so timeouts and commands still run
                 continue
@@ -266,7 +309,7 @@ class SerialLink:
                 yield line.decode("utf-8", errors="replace").strip()
 
     def write(self, line):
-        self.ser.write((line + "\n").encode("ascii"))
+        self._write((line + "\n").encode("ascii"))
 
 
 def file_lines(path):
