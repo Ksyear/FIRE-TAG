@@ -1,0 +1,159 @@
+# 2026-10-05 17:44 (KST) 첫 거리측정 확인. Tag(/dev/cu.usbserial-140)와 Anchor 0(/dev/cu.usbserial-0001)을 115200 bps로 12초 동시 수신한 원본.
+# Tag는 RTS로 리셋한 뒤 수신, Anchor 0은 리셋 없이 수신. 줄별 시각 기록 없음(이후 02_ 기록부터 추가).
+===== TAG
+ets Jul 29 2019 12:21:46
+
+rst:0x1 (POWERON_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:1
+load:0x3fff0030,len:4640
+load:0x40078000,len:15592
+load:0x40080400,len:3164
+entry 0x4008059c
+# FIRE-TAG Tag (DS-TWR initiator) TAG_ID=0
+DEVICE ID: deca0302
+PLL is locked..
+PGF cal complete..
+# UWB ready: DEV_ID=0xDECA0302 channel=9
+# tag=0 cycle=9 alert=off  A0 9/9  A1 0/9 (NO_RESP)  A2 0/9 (NO_RESP)
+# tag=0 cycle=19 alert=off  A0 10/10  A1 0/10 (NO_RESP)  A2 0/10 (NO_RESP)
+# tag=0 cycle=29 alert=off  A0 10/10  A1 0/10 (NO_RESP)  A2 0/10 (NO_RESP)
+# tag=0 cycle=39 alert=off  A0 10/10  A1 0/10 (NO_RESP)  A2 0/10 (NO_RESP)
+# tag=0 cycle=49 alert=off  A0 10/10  A1 0/10 (NO_RESP)  A2 0/10 (NO_RESP)
+# tag=0 cycle=59 alert=off  A0 10/10  A1 0/10 (NO_RESP)  A2 0/10 (NO_RESP)
+# tag=0 cycle=69 alert=off  A0 10/10  A1 0/10 (NO_RESP)  A2 0/10 (NO_RESP)
+# tag=0 cycle=79 alert=off  A0 10/10  A1 0/10 (NO_RESP)  A2 0/10 (NO_RESP)
+# tag=0 cycle=89 alert=off  A0 10/10  A1 0/10 (NO_RESP)  A2 0/10 (NO_RESP)
+# tag=0 cycle=99 alert=off  A0 10/10  A1 0/10 (NO_RESP)  A2 0/10 (NO_RESP)
+# tag=0 cycle=109 alert=off  A0 10/10  A1 0/10 (NO_RESP)  A2 0/10 (NO_RESP)
+
+===== ANCHOR0
+{"type":"status","anchor":0,"ok":154,"fail":0,"alert_mask":0,"anchor_ms":1131000,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":0,"range_mm":164,"tag_alert":false,"anchor_ms":1131216,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":1,"range_mm":258,"tag_alert":false,"anchor_ms":1131316,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":2,"range_mm":243,"tag_alert":false,"anchor_ms":1131416,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":3,"range_mm":206,"tag_alert":false,"anchor_ms":1131516,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":4,"range_mm":279,"tag_alert":false,"anchor_ms":1131616,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":5,"range_mm":267,"tag_alert":false,"anchor_ms":1131716,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":6,"range_mm":274,"tag_alert":false,"anchor_ms":1131816,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":7,"range_mm":198,"tag_alert":false,"anchor_ms":1131916,"via":"local"}
+{"type":"status","anchor":0,"ok":162,"fail":0,"alert_mask":0,"anchor_ms":1132000,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":8,"range_mm":245,"tag_alert":false,"anchor_ms":1132016,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":9,"range_mm":247,"tag_alert":false,"anchor_ms":1132116,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":10,"range_mm":284,"tag_alert":false,"anchor_ms":1132216,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":11,"range_mm":226,"tag_alert":false,"anchor_ms":1132316,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":12,"range_mm":249,"tag_alert":false,"anchor_ms":1132416,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":13,"range_mm":259,"tag_alert":false,"anchor_ms":1132516,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":14,"range_mm":198,"tag_alert":false,"anchor_ms":1132616,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":15,"range_mm":256,"tag_alert":false,"anchor_ms":1132716,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":16,"range_mm":251,"tag_alert":false,"anchor_ms":1132816,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":17,"range_mm":246,"tag_alert":false,"anchor_ms":1132916,"via":"local"}
+{"type":"status","anchor":0,"ok":172,"fail":0,"alert_mask":0,"anchor_ms":1133000,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":18,"range_mm":272,"tag_alert":false,"anchor_ms":1133016,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":19,"range_mm":261,"tag_alert":false,"anchor_ms":1133116,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":20,"range_mm":251,"tag_alert":false,"anchor_ms":1133216,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":21,"range_mm":196,"tag_alert":false,"anchor_ms":1133316,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":22,"range_mm":254,"tag_alert":false,"anchor_ms":1133416,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":23,"range_mm":283,"tag_alert":false,"anchor_ms":1133516,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":24,"range_mm":276,"tag_alert":false,"anchor_ms":1133616,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":25,"range_mm":293,"tag_alert":false,"anchor_ms":1133716,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":26,"range_mm":240,"tag_alert":false,"anchor_ms":1133816,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":27,"range_mm":287,"tag_alert":false,"anchor_ms":1133916,"via":"local"}
+{"type":"status","anchor":0,"ok":182,"fail":0,"alert_mask":0,"anchor_ms":1134000,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":28,"range_mm":277,"tag_alert":false,"anchor_ms":1134016,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":29,"range_mm":197,"tag_alert":false,"anchor_ms":1134116,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":30,"range_mm":293,"tag_alert":false,"anchor_ms":1134216,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":31,"range_mm":233,"tag_alert":false,"anchor_ms":1134316,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":32,"range_mm":240,"tag_alert":false,"anchor_ms":1134416,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":33,"range_mm":238,"tag_alert":false,"anchor_ms":1134516,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":34,"range_mm":239,"tag_alert":false,"anchor_ms":1134616,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":35,"range_mm":266,"tag_alert":false,"anchor_ms":1134716,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":36,"range_mm":280,"tag_alert":false,"anchor_ms":1134816,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":37,"range_mm":242,"tag_alert":false,"anchor_ms":1134916,"via":"local"}
+{"type":"status","anchor":0,"ok":192,"fail":0,"alert_mask":0,"anchor_ms":1135000,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":38,"range_mm":237,"tag_alert":false,"anchor_ms":1135016,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":39,"range_mm":276,"tag_alert":false,"anchor_ms":1135116,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":40,"range_mm":240,"tag_alert":false,"anchor_ms":1135216,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":41,"range_mm":177,"tag_alert":false,"anchor_ms":1135316,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":42,"range_mm":256,"tag_alert":false,"anchor_ms":1135416,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":43,"range_mm":258,"tag_alert":false,"anchor_ms":1135516,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":44,"range_mm":247,"tag_alert":false,"anchor_ms":1135616,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":45,"range_mm":188,"tag_alert":false,"anchor_ms":1135716,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":46,"range_mm":251,"tag_alert":false,"anchor_ms":1135816,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":47,"range_mm":218,"tag_alert":false,"anchor_ms":1135916,"via":"local"}
+{"type":"status","anchor":0,"ok":202,"fail":0,"alert_mask":0,"anchor_ms":1136000,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":48,"range_mm":195,"tag_alert":false,"anchor_ms":1136016,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":49,"range_mm":233,"tag_alert":false,"anchor_ms":1136116,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":50,"range_mm":285,"tag_alert":false,"anchor_ms":1136216,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":51,"range_mm":237,"tag_alert":false,"anchor_ms":1136316,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":52,"range_mm":252,"tag_alert":false,"anchor_ms":1136416,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":53,"range_mm":278,"tag_alert":false,"anchor_ms":1136516,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":54,"range_mm":167,"tag_alert":false,"anchor_ms":1136616,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":55,"range_mm":230,"tag_alert":false,"anchor_ms":1136716,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":56,"range_mm":271,"tag_alert":false,"anchor_ms":1136816,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":57,"range_mm":185,"tag_alert":false,"anchor_ms":1136916,"via":"local"}
+{"type":"status","anchor":0,"ok":212,"fail":0,"alert_mask":0,"anchor_ms":1137000,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":58,"range_mm":257,"tag_alert":false,"anchor_ms":1137016,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":59,"range_mm":276,"tag_alert":false,"anchor_ms":1137116,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":60,"range_mm":288,"tag_alert":false,"anchor_ms":1137216,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":61,"range_mm":272,"tag_alert":false,"anchor_ms":1137316,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":62,"range_mm":254,"tag_alert":false,"anchor_ms":1137416,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":63,"range_mm":257,"tag_alert":false,"anchor_ms":1137516,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":64,"range_mm":246,"tag_alert":false,"anchor_ms":1137616,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":65,"range_mm":192,"tag_alert":false,"anchor_ms":1137716,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":66,"range_mm":210,"tag_alert":false,"anchor_ms":1137816,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":67,"range_mm":167,"tag_alert":false,"anchor_ms":1137916,"via":"local"}
+{"type":"status","anchor":0,"ok":222,"fail":0,"alert_mask":0,"anchor_ms":1138000,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":68,"range_mm":206,"tag_alert":false,"anchor_ms":1138016,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":69,"range_mm":175,"tag_alert":false,"anchor_ms":1138116,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":70,"range_mm":237,"tag_alert":false,"anchor_ms":1138216,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":71,"range_mm":168,"tag_alert":false,"anchor_ms":1138316,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":72,"range_mm":258,"tag_alert":false,"anchor_ms":1138416,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":73,"range_mm":233,"tag_alert":false,"anchor_ms":1138516,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":74,"range_mm":240,"tag_alert":false,"anchor_ms":1138616,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":75,"range_mm":236,"tag_alert":false,"anchor_ms":1138716,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":76,"range_mm":220,"tag_alert":false,"anchor_ms":1138816,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":77,"range_mm":226,"tag_alert":false,"anchor_ms":1138916,"via":"local"}
+{"type":"status","anchor":0,"ok":232,"fail":0,"alert_mask":0,"anchor_ms":1139000,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":78,"range_mm":259,"tag_alert":false,"anchor_ms":1139016,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":79,"range_mm":193,"tag_alert":false,"anchor_ms":1139116,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":80,"range_mm":220,"tag_alert":false,"anchor_ms":1139216,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":81,"range_mm":176,"tag_alert":false,"anchor_ms":1139316,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":82,"range_mm":212,"tag_alert":false,"anchor_ms":1139416,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":83,"range_mm":210,"tag_alert":false,"anchor_ms":1139516,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":84,"range_mm":226,"tag_alert":false,"anchor_ms":1139616,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":85,"range_mm":184,"tag_alert":false,"anchor_ms":1139716,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":86,"range_mm":186,"tag_alert":false,"anchor_ms":1139816,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":87,"range_mm":171,"tag_alert":false,"anchor_ms":1139916,"via":"local"}
+{"type":"status","anchor":0,"ok":242,"fail":0,"alert_mask":0,"anchor_ms":1140000,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":88,"range_mm":179,"tag_alert":false,"anchor_ms":1140016,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":89,"range_mm":176,"tag_alert":false,"anchor_ms":1140116,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":90,"range_mm":140,"tag_alert":false,"anchor_ms":1140216,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":91,"range_mm":195,"tag_alert":false,"anchor_ms":1140316,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":92,"range_mm":118,"tag_alert":false,"anchor_ms":1140416,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":93,"range_mm":123,"tag_alert":false,"anchor_ms":1140516,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":94,"range_mm":147,"tag_alert":false,"anchor_ms":1140616,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":95,"range_mm":161,"tag_alert":false,"anchor_ms":1140716,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":96,"range_mm":179,"tag_alert":false,"anchor_ms":1140816,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":97,"range_mm":152,"tag_alert":false,"anchor_ms":1140916,"via":"local"}
+{"type":"status","anchor":0,"ok":252,"fail":0,"alert_mask":0,"anchor_ms":1141000,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":98,"range_mm":232,"tag_alert":false,"anchor_ms":1141016,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":99,"range_mm":188,"tag_alert":false,"anchor_ms":1141116,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":100,"range_mm":192,"tag_alert":false,"anchor_ms":1141216,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":101,"range_mm":271,"tag_alert":false,"anchor_ms":1141316,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":102,"range_mm":225,"tag_alert":false,"anchor_ms":1141416,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":103,"range_mm":219,"tag_alert":false,"anchor_ms":1141516,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":104,"range_mm":206,"tag_alert":false,"anchor_ms":1141616,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":105,"range_mm":250,"tag_alert":false,"anchor_ms":1141716,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":106,"range_mm":213,"tag_alert":false,"anchor_ms":1141816,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":107,"range_mm":195,"tag_alert":false,"anchor_ms":1141916,"via":"local"}
+{"type":"status","anchor":0,"ok":262,"fail":0,"alert_mask":0,"anchor_ms":1142000,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":108,"range_mm":222,"tag_alert":false,"anchor_ms":1142016,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":109,"range_mm":186,"tag_alert":false,"anchor_ms":1142116,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":110,"range_mm":251,"tag_alert":false,"anchor_ms":1142216,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":111,"range_mm":186,"tag_alert":false,"anchor_ms":1142316,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":112,"range_mm":223,"tag_alert":false,"anchor_ms":1142416,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":113,"range_mm":272,"tag_alert":false,"anchor_ms":1142516,"via":"local"}
+{"type":"range","anchor":0,"tag":0,"seq":114,"range_mm":182,"tag_alert":false,"anchor_ms":1142616,"via":"local"}
+{"type":"range","anchor":0,"tag"

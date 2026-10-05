@@ -358,7 +358,7 @@ classDiagram
 
 ## 7. 실기 확인 기록 (2026-10-05)
 
-[![Tag와 Anchor 0 실기 통신 기록](evidence/2026-10-05_tag-anchor0/evidence.png)](evidence/2026-10-05_tag-anchor0/)
+[![Tag와 Anchor 0 실기 통신 기록](../FIRE-TAG_Tag_Anchor_UWB_Package/images/tag_anchor0_30s_evidence.png)](../FIRE-TAG_Tag_Anchor_UWB_Package/FIRE-TAG_Tag_Anchor_UWB_Report.md)
 
 | 항목 | 결과 |
 |---|---|
@@ -369,7 +369,7 @@ classDiagram
 | Mac USB 경로 (허브 2단) | 정상 동작 중 기록(12초, 30초)에서는 깨진 줄 없음. 일반 속도 업로드가 실패했고, 그 직후 부팅 로그에서 바이트 유실·조각 반복이 보임. 안전 모드(38400, `--no-stub`) 업로드는 성공 |
 | 아직 확인하지 않은 것 | 위치(x, y): 앵커 3대 필요. 실제 거리 대비 오차: 줄자 측정 전. Anchor 1·2, Pi 연동 |
 
-원본 로그와 기록 방법은 [docs/evidence/2026-10-05_tag-anchor0](evidence/2026-10-05_tag-anchor0/)에 있습니다.
+코드, 사전 빌드 펌웨어, 원본 로그, 기록 방법은 [FIRE-TAG_Tag_Anchor_UWB_Package](../FIRE-TAG_Tag_Anchor_UWB_Package/FIRE-TAG_Tag_Anchor_UWB_Report.md)에 모아 두었습니다.
 
 ## 8. 결정이 필요한 것
 

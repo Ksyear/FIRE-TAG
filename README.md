@@ -13,7 +13,7 @@ git clone --recursive git@github.com:Ksyear/FIRE-TAG.git   # DW3000 드라이버
 
 | 상태 (2026-10-05) | 내용 |
 |---|---|
-| 실기 확인 | Tag ↔ Anchor 0 UWB 거리측정(10 Hz, 성공률 100%), Mac → Anchor 0 → Tag 경보 명령과 Tag 회신(148 ms). [기록](docs/evidence/2026-10-05_tag-anchor0/) |
+| 실기 확인 | Tag ↔ Anchor 0 UWB 거리측정(10 Hz, 성공률 100%), Mac → Anchor 0 → Tag 경보 명령과 Tag 회신(148 ms). [보고서](FIRE-TAG_Tag_Anchor_UWB_Package/FIRE-TAG_Tag_Anchor_UWB_Report.md) |
 | 시뮬레이션 확인 | 위치 계산, DB 저장, 대시보드, 명령·경보 경로 |
 | 아직 안 함 | 위치(x, y) 실측(앵커 3대 필요), Anchor 1·2 ESP-NOW, Pi 연동, 핫스팟(최종 테스트 때) |
 
@@ -64,6 +64,8 @@ flowchart LR
 ## 2. 폴더
 
 ```text
+FIRE-TAG_Tag_Anchor_UWB_Package/   요구조자 Tag ↔ Anchor 연결 패키지: 보고서, 코드 스냅샷, 사전 빌드 펌웨어, 실기 기록
+FIRE-TAG_SPI_Test_Package/        DWM3000EVB SPI 연결 시험 패키지
 firmware/
   build.sh                       컴파일·업로드 (arduino-cli)
   fire_tag_tag/                  요구조자 Tag  — LOLIN D32
@@ -196,7 +198,7 @@ RESP 프레임의 12번째 바이트(0부터 셈)는 Anchor → Tag 플래그(bi
 |---|---|---|
 | 4종 펌웨어(Tag, Anchor 0/1/2) 컴파일 | 확인 | ESP32 core 3.3.11, 경고 0개 |
 | Tag ↔ Anchor 0 UWB 거리측정 | 실기 확인 | 30초 동안 292회(초당 10회), 깨진 줄 0, 사이클 누락 0, 평균 234 mm·표준편차 29 mm(보정 전) |
-| Mac → Anchor 0 → Tag 명령 | 실기 확인 | 경보 켜기·끄기 모두 Anchor 0 ACK, Tag 회신까지 148 ms. [기록과 캡처](docs/evidence/2026-10-05_tag-anchor0/) |
+| Mac → Anchor 0 → Tag 명령 | 실기 확인 | 경보 켜기·끄기 모두 Anchor 0 ACK, Tag 회신까지 148 ms. [보고서와 기록](FIRE-TAG_Tag_Anchor_UWB_Package/FIRE-TAG_Tag_Anchor_UWB_Report.md) |
 | DS-TWR 계산식 | 시뮬레이션 | ±25 ppm 클럭 오차, 카운터 넘김에서 오차 1 cm 미만 |
 | Pi 다변측량·그룹핑 | 시뮬레이션 | 합성 데이터 재생: 3 cm 노이즈 → 약 3 cm 위치 오차, seq 넘김·누락 처리 |
 | 저장 → 웹 대시보드 | 시뮬레이션 | DB 기록, `/api/state`, CSV 다운로드, 앵커 끊김·위치 끊김 표시, 노트북·휴대폰 화면 |
