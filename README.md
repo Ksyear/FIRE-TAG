@@ -13,9 +13,9 @@ git clone --recursive git@github.com:Ksyear/FIRE-TAG.git   # DW3000 드라이버
 
 | 상태 (2026-10-05) | 내용 |
 |---|---|
-| 실기 확인 | Tag ↔ Anchor 0 UWB 거리측정(10 Hz, 성공률 100%), Mac → Anchor 0 → Tag 경보 명령과 Tag 회신(148 ms). [보고서](FIRE-TAG_Tag_Anchor_UWB_Package/FIRE-TAG_Tag_Anchor_UWB_Report.md) |
+| 실기 확인 | Tag ↔ Anchor 0/1/2 거리 보고, Pi 수신·대시보드·전체 점검 ACK, 앵커 세 쌍 직접 측정·좌표 설정·Tag 이동 시 좌표 갱신. 이전 A0 단독 시험과 경보 기록은 [보고서](FIRE-TAG_Tag_Anchor_UWB_Package/FIRE-TAG_Tag_Anchor_UWB_Report.md) 참고 |
 | 시뮬레이션 확인 | 위치 계산, DB 저장, 대시보드, 명령·경보 경로 |
-| 아직 안 함 | 위치(x, y) 실측(앵커 3대 필요), Anchor 1·2 ESP-NOW, Pi 연동, 핫스팟(최종 테스트 때) |
+| 아직 안 함 | 실제 위치와 계산 좌표의 오차 비교, 핫스팟·systemd 실기 검증. 직접 거리 자동 설정은 안정된 삼각형 측정을 통과해야 좌표를 표시함 |
 
 ## 1. 전체 구조
 
@@ -76,6 +76,7 @@ firmware/
                                  Arduino 포팅(NConcepts 작성). 라이선스 표기가 불분명해서 복사하지 않고 참조만 함
 raspberrypi/
   fire_tag_receiver.py           수신 + 다변측량 + SQLite 저장 + 명령 전송·경보 동기화
+  anchor_pair_calibration.py     앵커 간 직접 거리로 삼각형 검증·상대 좌표 설정
   fire_tag_web.py                대시보드 웹 서버·명령 API (표준 라이브러리만 사용)
   web/index.html                 대시보드 (외부 CDN·폰트 없음 → 인터넷 없이 동작)
   config.json                    Anchor 좌표(m)·높이·보정값·방 크기
@@ -166,12 +167,26 @@ python3 fire_tag_receiver.py --record raw.jsonl   # 원본 기록 → 나중에 
 
 **Mac에서 미리 보기**(Pi 없이 화면 확인): `python3 fire_tag_web.py --port 8000 --db <db파일>` 실행 후 http://localhost:8000을 엽니다.
 
+**현재 Wi-Fi에서 실행** — 핫스팟 전환 없이 `./run_dev.sh start`로 수신기와 웹을 함께 실행합니다. 주소는 `http://<Pi IP>:8080`입니다. 두 프로세스 중 하나라도 시작에 실패하면 오류 로그를 출력하고 둘 다 중지합니다. `./run_dev.sh status`로 로그를 확인합니다.
+
+`Permission denied`가 나오면 `sudo usermod -aG dialout "$USER"` 후 SSH에 다시 로그인합니다. 현재 셸에서 바로 실행하려면 `sg dialout -c './run_dev.sh start'`를 사용합니다.
+
+동일한 USB 식별자를 가진 보드가 여러 대 연결되면 자동 포트 선택은 중단합니다. `ls -l /dev/serial/by-path/`로 A0 연결 포트를 확인하고 `config.json`에 `"serial_port": "/dev/serial/by-path/<A0 포트>"`를 지정하세요. 이 경로는 USB 포트 기준이므로 A0를 다른 포트로 옮기면 설정도 바꿔야 합니다.
+
+**앵커 간 직접 거리 자동 설정**
+
+- 세 앵커 모두 최신 펌웨어를 올리고 전원을 유지합니다. 고정된 삼각형으로 배치합니다. 줄자로 거리를 입력할 필요는 없습니다.
+- 기본 설정 `"auto_calibrate": true`, `"calibration_mode": "anchor_ranges"`에서 Pi가 A0–A1, A0–A2, A1–A2에 차례로 측정 명령을 보냅니다. ACK는 명령 접수이며, 별도의 `anchor_range` 보고만 측정으로 인정합니다.
+- 각 쌍의 최근 거리 최소 20개를 모아 중앙값을 사용합니다. 산포(1.4826 × MAD) 0.15 m 이하, 삼각 부등식, 삼각형의 최소 높이 0.20 m를 확인합니다. 통과 전에는 새 Tag 좌표를 계산·저장하지 않고 대시보드에 원인을 보여줍니다. 재교정 중에는 이전 좌표가 마지막 갱신 시각과 함께 남아 있을 수 있습니다.
+- 상대 좌표를 A0=(0,0), A1=(거리,0), A2=(x,+y)로 저장하고 `auto_calibrate=false`로 바꿉니다. 방의 절대 방향은 알 수 없습니다. 기본값은 모든 장치의 높이가 같다고 가정하며, 높이가 다르면 `z`와 `tag_z`를 실제 값으로 설정해야 합니다. 반복 측정 산포는 절대 거리 정확도가 아닙니다.
+- 앵커 배치를 바꾸면 `auto_calibrate=true`로 되돌리고 수신기를 재시작합니다. Tag를 움직이지 않아도 앵커 좌표 설정은 진행됩니다.
+
 ## 6. 첫 동작 확인 순서
 
 1. **Anchor 0 + Tag만** 켭니다. Anchor 0의 시리얼 모니터에 `"type":"range","anchor":0` 줄이 나와야 합니다. Tag의 시리얼 모니터에는 1초마다 `A0 10/10  A1 0/10 (NO_RESP) ...`가 보입니다(A1·A2는 아직 꺼져 있으므로 정상).
 2. 줄자로 1 m, 3 m 거리를 두고 `range_mm`의 평균 오차를 기록합니다. 이 값이 해당 Anchor의 `bias_m`입니다.
 3. Anchor 1·2를 켜고 Anchor 0 출력에 `"via":"espnow"` 줄이 나오는지 확인합니다.
-4. 세 Anchor를 일직선이 아닌 삼각형으로 설치하고 좌표(m)를 `config.json`에 입력합니다. Tag는 그 삼각형 안에 있을 때 가장 정확합니다.
+4. 세 Anchor를 일직선이 아닌 고정 삼각형으로 설치하고 위의 직접 거리 자동 설정을 실행합니다. 실측 좌표를 쓸 때는 `auto_calibrate=false`로 설정하고 좌표(m)를 입력합니다.
 5. Pi에서 `./setup_pi.sh` → `./setup_hotspot.sh` 순서로 실행한 뒤 휴대폰으로 http://10.42.0.1에 접속합니다.
 6. 대시보드에서 **전체 점검**을 눌러 "A0 성공, A1 성공, A2 성공"이 나오는지 확인합니다(Pi→ESP32 경로 확인).
 7. **경보 켜기**를 누르고 Tag LED(LOLIN D32 기판의 내장 LED, IO5)가 0.25초 간격으로 깜빡이는지, 화면에 "Tag가 경보를 받았습니다"가 뜨는지 확인합니다.
@@ -187,10 +202,11 @@ RESP 프레임의 12번째 바이트(0부터 셈)는 Anchor → Tag 플래그(bi
 {"type":"range","anchor":1,"tag":0,"seq":812,"range_mm":3169,"tag_alert":false,"anchor_ms":51230,"via":"espnow","link_rssi":-48}
 {"type":"status","anchor":2,"ok":4120,"fail":37,"alert_mask":0,"anchor_ms":60001,"via":"espnow","link_rssi":-55}
 {"type":"ack","anchor":1,"id":17,"cmd":"ping","ok":true,"anchor_ms":61002,"via":"espnow","link_rssi":-47}
+{"type":"anchor_range","anchor":1,"peer":0,"seq":63489,"range_mm":3169,"anchor_ms":62002,"via":"espnow","link_rssi":-47}
 ```
 `#`로 시작하는 줄은 사람이 읽는 로그이고, Pi는 이 줄을 무시합니다.
 
-**Pi → Anchor 0(텍스트 라인)**: `CMD <id> <target> <name> <arg>` — target 255 = 전체, name = `ping` | `reboot` | `alert`(arg = 태그별 경보 비트마스크). Anchor 0은 자기 몫을 실행하고 나머지는 ESP-NOW로 넘깁니다. Arduino 시리얼 모니터에서 직접 `CMD 1 255 ping 0`을 입력해 시험해 볼 수도 있습니다.
+**Pi → Anchor 0(텍스트 라인)**: `CMD <id> <target> <name> <arg>` — target 255 = 전체, name = `ping` | `reboot` | `alert`(arg = 태그별 경보 비트마스크) | `range`(arg = 상대 앵커 번호, target은 개별 앵커). Anchor 0은 자기 몫을 실행하고 나머지는 ESP-NOW로 넘깁니다. Arduino 시리얼 모니터에서 직접 `CMD 1 255 ping 0`을 입력해 시험해 볼 수도 있습니다. 앵커 간 측정은 별도 UWB 함수 코드 `0x31/0x32/0x33`을 사용합니다.
 
 ## 8. 검증 범위와 남은 위험
 
@@ -205,9 +221,12 @@ RESP 프레임의 12번째 바이트(0부터 셈)는 Anchor → Tag 플래그(bi
 | Pi → ESP32 명령 경로 | 시뮬레이션 | 전체 점검 ACK, 경보 켜기 → Tag 수신 확인, A2 재부팅 후 경보 자동 재동기화, 경보 끄기, 잘못된 입력 거부 |
 | Python 호환성 | 확인 | Python 3.9에서 실행 → Ubuntu 22.04(3.10)·24.04(3.12) 문제없음 |
 | 핫스팟 netplan YAML | 확인 | 생성 결과가 의도한 구조로 파싱됨. 키 이름은 netplan 공식 문서, AP → shared(DHCP) 변환은 netplan 소스로 확인 |
-| **위치(x, y) 실측** | **미확인** | 앵커 3대가 필요함. 지금은 Anchor 0 한 대만 켜져 있음 |
-| **Anchor 1·2 ESP-NOW** | **미확인** | 아직 펌웨어를 올리지 않음 |
-| **Pi 실기(Ubuntu 핫스팟·systemd)** | **미확인** | Pi 4에서 아직 실행하지 않음 (SSH 키 등록 대기) |
+| **위치(x, y) 실측 정확도** | **미확인** | 줄자 등 독립된 기준으로 계산 좌표를 비교하지 않음 |
+| **Anchor 1·2 ESP-NOW** | **실기 확인** | Pi에서 거리·상태 보고와 전체 점검 ACK 수신 |
+| **앵커 간 직접 측정·좌표 설정** | **실기 확인** | 고정 배치 후 거리 7.011 / 7.850 / 3.755 m, 샘플 20 / 21 / 20개, 최대 산포 0.019 m. 독립된 거리 기준과 비교하지 않음 |
+| **Tag 이동 시 위치 갱신** | **실기 확인** | 실제 대시보드 녹화에서 좌표·경로 변화 확인. 후반 약 11초 갱신 중단 뒤 재개. 해당 구간 원본에는 A1·A2 거리만 있고 A0 거리는 없음. 원인은 미확정 |
+| **Pi 수신·웹** | **실기 확인** | Ubuntu 26.04.1, `run_dev.sh`, 기존 Wi-Fi에서 포트 8080 접속 |
+| **Pi 핫스팟·systemd** | **미확인** | 현재 시험은 기존 Wi-Fi와 개발 실행 스크립트 사용 |
 
 실기 시험에서 확인할 것:
 - **응답 타이밍**: Tag 요약에 `LATE`가 자주 나오면 `FireTagUwb.h`의 `REPLY_DLY_UUS`(2000)를 3000으로 올립니다. 이 경우 `RX_AFTER_TX_DLY_UUS`도 같은 폭만큼 올려야 합니다.

@@ -98,7 +98,7 @@ CREATE TABLE IF NOT EXISTS alert_desired (  -- set by fire_tag_web.py
 class Store:
     """SQLite access. WAL mode lets fire_tag_web.py read while we write."""
 
-    COMMIT_INTERVAL_S = 0.5  # batch writes; also limits SD card wear
+    COMMIT_INTERVAL_S = 0.5  # maximum batch interval for callers that do not force a commit
 
     def __init__(self, path):
         Path(path).parent.mkdir(parents=True, exist_ok=True)
@@ -249,6 +249,9 @@ def find_anchor_port():
     candidates += sorted(glob.glob("/dev/ttyUSB*")) + sorted(glob.glob("/dev/cu.usbserial-*"))
     if not candidates:
         sys.exit("Anchor 0 not found. Plug it in or pass --port.")
+    ports = {str(Path(p).resolve()) for p in candidates}
+    if len(ports) > 1:
+        sys.exit("Multiple USB serial devices found. Set config.json serial_port to Anchor 0's port or pass --port.")
     return candidates[0]
 
 
@@ -346,8 +349,8 @@ class Receiver:
         self.link = link
         self.live = live
         self.groups = {}          # (tag, seq) -> {"t", "ranges": {anchor: m}, "slant": {anchor: m}, "alert"}
-        # Anchor self-calibration (config "auto_calibrate": true): positions are
-        # only shown after the anchor triangle has been measured from Tag ranges.
+        # Anchor self-calibration (config "auto_calibrate": true): new positions
+        # are only solved after calibration validates the anchor triangle.
         self.config = config
         self.config_path = config_path
         self.auto_cal = bool(config.get("auto_calibrate")) and len(self.anchors) == 3
@@ -356,6 +359,17 @@ class Receiver:
         self.cal_result = None
         self.cal_last = 0.0
         self.cal_status = None
+        self.pair_cal = None
+        if self.auto_cal and config.get("calibration_mode") == "anchor_ranges":
+            from anchor_pair_calibration import AnchorPairs
+            if set(self.anchors) != {0, 1, 2}:
+                raise ValueError("anchor_ranges calibration needs anchors 0, 1, 2")
+            self.pair_cal = AnchorPairs(self.anchors)
+        self.pair_pending = None
+        self.pair_next = 0
+        self.pair_seq = 0
+        self.pair_last_request = -1.0
+        self.pair_rejected = set()
         self.anchor_seen = {}     # anchor -> last time any message arrived
         self.anchor_online = {}
         self.tag_seen = {}        # tag -> last time a position was solved
@@ -385,7 +399,17 @@ class Receiver:
         kind = msg.get("type")
         if kind == "range":
             self.add_range(msg, now)
+        elif kind == "anchor_range" and self.pair_cal and self.auto_cal:
+            pending = self.pair_pending
+            if pending and (msg.get("peer"), msg.get("anchor"), msg.get("seq")) == pending[:3]:
+                if self.pair_cal.add(msg["anchor"], msg["peer"], msg["range_mm"], msg["seq"]):
+                    self.pair_rejected.discard(msg["peer"])
+                    self.pair_pending = None
         elif kind == "ack":
+            if self.pair_pending and msg.get("id") == self.pair_pending[2] \
+                    and msg.get("anchor") == self.pair_pending[0] and not msg.get("ok"):
+                self.pair_rejected.add(msg["anchor"])
+                self.pair_pending = None
             self.handle_ack(msg)
 
     def mark_anchor(self, anchor, msg, now):
@@ -431,7 +455,7 @@ class Receiver:
             print(f"tag {tag} seq {seq:5d}  only {len(ranges)} range(s)       [{detail}]")
             return
         if self.auto_cal:
-            if len(group["slant"]) == 3:
+            if not self.pair_cal and len(group["slant"]) == 3:
                 self.cal_samples.append(tuple(group["slant"][a] for a in sorted(group["slant"])))
             return  # anchor positions not measured yet; a position would be wrong
         result = solve_position(self.anchors, ranges)
@@ -519,13 +543,43 @@ class Receiver:
                 continue
             if now - self.alert_sent_at.get(anchor, -ALERT_RESYNC_S) < ALERT_RESYNC_S:
                 continue
-            self.sync_id = (self.sync_id + 1) % (SEQ_MOD - CMD_ID_MOD)
+            self.sync_id = (self.sync_id + 1) % 0x800
             self.send_command(CMD_ID_MOD + self.sync_id, anchor, "alert", desired)
             self.alert_sent_at[anchor] = now
 
     # -- periodic checks ---------------------------------------------------
     # -- anchor self-calibration ---------------------------------------------
+    def pair_calibration_step(self, now):
+        result = self.pair_cal.result()
+        if result["ok"]:
+            self.apply_calibration(result)
+            return
+        counts = self.pair_cal.counts()
+        detail = ", ".join(f"A{a}–A{b} {counts[f'{a}{b}']}/{self.pair_cal.MIN_SAMPLES}"
+                           for a, b in self.pair_cal.PAIRS)
+        message = f"앵커끼리 UWB 거리 측정 중: {detail}. {result['message']}"
+        if self.pair_rejected:
+            ids = ", ".join(f"A{a}" for a in sorted(self.pair_rejected))
+            message = f"{ids}가 거리 측정 명령을 거부했습니다. 앵커 펌웨어를 확인하세요. {detail}"
+        self.set_cal_status("collecting", message, result)
+        if not self.link:
+            return
+        if self.pair_pending and now - self.pair_pending[3] < 0.8:
+            return
+        if now - self.pair_last_request < 0.15:
+            return
+        a, b = self.pair_cal.PAIRS[self.pair_next]
+        self.pair_next = (self.pair_next + 1) % len(self.pair_cal.PAIRS)
+        self.pair_seq = (self.pair_seq + 1) % 0x800
+        wire_id = 0xF800 + self.pair_seq
+        self.pair_pending = (a, b, wire_id, now)
+        self.pair_last_request = now
+        self.send_command(wire_id, a, "range", b)
+
     def calibration_step(self, now):
+        if self.pair_cal:
+            self.pair_calibration_step(now)
+            return
         import anchor_calibration as ac
 
         needed = ac.MIN_SAMPLES
@@ -535,8 +589,8 @@ class Receiver:
             if res and res["ok"]:
                 self.apply_calibration(res)
                 return
-            reason = ("Tag를 한 줄로만 움직였거나 거의 움직이지 않아 위치가 하나로 정해지지 않습니다. "
-                      "앵커 세 개 사이를 넓게 돌아다녀 주세요." if res and not res["unique"]
+            reason = ("측정값으로 앵커 위치를 하나로 확정하지 못했습니다. "
+                      "앵커 간 직접 측정 또는 실측 좌표를 사용하세요." if res and not res["unique"]
                       else "측정값이 아직 고르지 않습니다. 계속 움직여 주세요.")
             self.set_cal_status("collecting", reason, res)
         if self.cal_thread is None:
@@ -565,15 +619,19 @@ class Receiver:
         mono = time.monotonic()
         if self.store and (changed or mono - getattr(self, "cal_written", 0.0) >= 1.0):
             self.cal_written = mono
-            self.store.calibration(status, len(self.cal_samples), ac.MIN_SAMPLES, message, result)
+            samples = sum(self.pair_cal.counts().values()) if self.pair_cal else len(self.cal_samples)
+            needed = self.pair_cal.MIN_SAMPLES * 3 if self.pair_cal else ac.MIN_SAMPLES
+            self.store.calibration(status, samples, needed, message, result)
 
     def apply_calibration(self, res):
         for k, p in res["anchors"].items():
             self.anchors[int(k)].update(p)
         self.auto_cal = False
         d = res["distances"]
+        quality = (f"반복 측정 산포 {res['spread_m'] * 100:.0f} cm" if res.get("source") == "anchor_ranges"
+                   else f"잔차 {res['rms_m'] * 100:.0f} cm")
         msg = (f"앵커 위치 자동 측정 완료: A0–A1 {d['01']:.2f} m, A0–A2 {d['02']:.2f} m, "
-               f"A1–A2 {d['12']:.2f} m (잔차 {res['rms_m'] * 100:.0f} cm, 샘플 {res['samples']}개)")
+               f"A1–A2 {d['12']:.2f} m ({quality}, 샘플 {res['samples']}개)")
         self.event("calibrated", msg)
         self.set_cal_status("done", msg, res)
         if self.config_path:  # keep the result; the web server redraws the map from config.json
@@ -603,7 +661,8 @@ class Receiver:
         if self.auto_cal:
             self.calibration_step(now)
         if self.store:
-            self.store.commit(now)
+            # Release the writer lock before waiting for another serial line.
+            self.store.commit(now, force=True)
 
     def finish(self, now):
         for key in list(self.groups):
@@ -645,7 +704,7 @@ def main():
     record = open(args.record, "a", encoding="utf-8") if args.record else None
 
     baud = args.baud or config.get("serial_baud", 115200)  # must match firmware SERIAL_BAUD
-    link = SerialLink(args.port or find_anchor_port(), baud) if live else None
+    link = SerialLink(args.port or config.get("serial_port") or find_anchor_port(), baud) if live else None
     lines = link.lines() if link else file_lines(args.replay)
     rx = Receiver(config, csv_writer, store, link, live=live, config_path=args.config)
     try:

@@ -1,6 +1,7 @@
 {
-  "_comment": "Metres. auto_calibrate=true: the receiver measures the anchor triangle from Tag ranges while the Tag moves, writes x/y here and sets auto_calibrate=false. Until then the x/y below are placeholders. Anchors and Tag are assumed at about the same height (z equal). bias_m is subtracted from each anchor's range. Add \"room\": {\"x0\":..,\"y0\":..,\"x1\":..,\"y1\":..} to draw a room outline.",
+  "_comment": "Metres. auto_calibrate=true and calibration_mode=anchor_ranges: anchors measure all three pair distances; the receiver validates the triangle, saves x/y and sets auto_calibrate=false. Until then x/y are placeholders. Anchors and Tag are assumed at the same height (z equal). bias_m corrects Tag ranges only. Set serial_port to Anchor 0's stable by-path USB port when several boards are connected. Add room with x0/y0/x1/y1 to draw a room outline.",
   "auto_calibrate": true,
+  "calibration_mode": "anchor_ranges",
   "anchors": {
     "0": {"x": 0.0, "y": 0.0, "z": 1.0, "bias_m": 0.0},
     "1": {"x": 3.0, "y": 0.0, "z": 1.0, "bias_m": 0.0},

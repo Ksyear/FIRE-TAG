@@ -74,6 +74,10 @@ constexpr uint32_t SW_GUARD_MS = 20;
 constexpr uint8_t FN_POLL = 0x21;
 constexpr uint8_t FN_RESP = 0x10;
 constexpr uint8_t FN_FINAL = 0x23;
+// Anchor calibration uses the same payload layout with distinct function codes.
+constexpr uint8_t FN_ANCHOR_POLL = 0x31;
+constexpr uint8_t FN_ANCHOR_RESP = 0x32;
+constexpr uint8_t FN_ANCHOR_FINAL = 0x33;
 
 constexpr size_t IDX_SEQ = 2;
 constexpr size_t IDX_DST = 5;
@@ -127,22 +131,23 @@ constexpr uint8_t REPORT_VERSION = 2;
 constexpr uint8_t REPORT_RANGE = 1;
 constexpr uint8_t REPORT_HEARTBEAT = 2;
 constexpr uint8_t REPORT_ACK = 3;
+constexpr uint8_t REPORT_ANCHOR_RANGE = 4;
 
 struct __attribute__((packed)) Report {
   uint8_t magic[2];   // 'F','T'
   uint8_t version;    // REPORT_VERSION
-  uint8_t type;       // REPORT_RANGE, REPORT_HEARTBEAT or REPORT_ACK
+  uint8_t type;       // REPORT_RANGE, REPORT_HEARTBEAT, REPORT_ACK, REPORT_ANCHOR_RANGE
   uint8_t anchorId;
-  uint8_t tagId;      // RANGE only
-  uint16_t cycleSeq;  // RANGE only
-  int32_t rangeMm;    // RANGE only
+  uint8_t tagId;      // RANGE: tag; ANCHOR_RANGE: initiating anchor
+  uint16_t cycleSeq;  // RANGE: tag cycle; ANCHOR_RANGE: command id
+  int32_t rangeMm;    // RANGE or ANCHOR_RANGE
   uint32_t anchorMs;  // millis() on the sending anchor
   uint32_t okCount;   // successful ranges since boot
   uint32_t failCount; // aborted exchanges since boot
   uint8_t flags;      // RANGE: flags echoed by the tag; HEARTBEAT: alert mask
   uint8_t cmd;        // ACK: command code
   uint16_t cmdId;     // ACK: command id from the Pi
-  uint8_t cmdOk;      // ACK: 1 if executed
+  uint8_t cmdOk;      // ACK: 1 if executed; CMD_RANGE: request accepted only
 };
 
 inline bool isValidReport(const uint8_t *data, int len) {
@@ -159,6 +164,7 @@ constexpr uint8_t COMMAND_VERSION = 1;
 constexpr uint8_t CMD_PING = 1;    // reply with an ACK
 constexpr uint8_t CMD_REBOOT = 2;  // ACK, then restart
 constexpr uint8_t CMD_ALERT = 3;   // arg = alert mask (bit n = tag n)
+constexpr uint8_t CMD_RANGE = 4;   // arg = peer anchor id; ACK means accepted
 constexpr uint8_t TARGET_ALL = 0xFF;
 
 struct __attribute__((packed)) Command {
