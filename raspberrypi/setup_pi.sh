@@ -66,7 +66,7 @@ After=multi-user.target
 [Service]
 User=$RUN_USER
 WorkingDirectory=$DIR
-ExecStart=/usr/bin/python3 -u $DIR/fire_tag_web.py --db $DIR/data/fire_tag.db --port 80
+ExecStart=/usr/bin/python3 -u $DIR/fire_tag_web_lite.py --db $DIR/data/fire_tag.db --port 80
 # Lets a normal user bind port 80 without running as root.
 AmbientCapabilities=CAP_NET_BIND_SERVICE
 Restart=always
