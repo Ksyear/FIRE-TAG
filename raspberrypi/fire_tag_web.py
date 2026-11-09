@@ -2,7 +2,8 @@
 """FIRE-TAG web dashboard server (standard library only).
 
 Reads the SQLite file written by fire_tag_receiver.py and serves
-  GET  /                         dashboard page (web/index.html, no external files)
+  GET  / or /lite                lite dashboard (web/index_lite.html)
+  GET  /full                     original dashboard (web/index_full.html)
   GET  /api/state                latest positions, trail, anchors, events, commands (JSON)
   GET  /api/positions.csv?minutes=60   stored positions as CSV download
   POST /api/command  {"cmd":"ping"|"reboot","target":0|1|2|"all"}  queue an anchor command
@@ -55,7 +56,8 @@ class Dashboard:
     def __init__(self, db_path, config_path):
         self.db_path = Path(db_path)
         self.config_path = Path(config_path)
-        self.index_html = (HERE / "web" / "index.html").read_bytes()
+        self.index_html = (HERE / "web" / "index_lite.html").read_bytes()
+        self.full_html = (HERE / "web" / "index_full.html").read_bytes()
 
     def config(self):
         # Re-read every request so anchor coordinates can be edited live.
@@ -198,8 +200,10 @@ def make_handler(dash):
         def do_GET(self):
             url = urlparse(self.path)
             try:
-                if url.path in ("/", "/index.html"):
+                if url.path in ("/", "/index.html", "/lite", "/lite/"):
                     self.send(200, dash.index_html, "text/html; charset=utf-8")
+                elif url.path in ("/full", "/full/"):
+                    self.send(200, dash.full_html, "text/html; charset=utf-8")
                 elif url.path == "/api/state":
                     body = json.dumps(dash.state(), ensure_ascii=False).encode("utf-8")
                     self.send(200, body, "application/json; charset=utf-8")
