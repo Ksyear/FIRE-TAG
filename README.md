@@ -1,6 +1,8 @@
 # FIRE-TAG
 
-화재 현장에서 고립된 요구조자의 위치를 UWB로 찾는 시제품입니다. 요구조자가 지닌 Tag와 고정 앵커 3대가 거리를 재고, Raspberry Pi가 위치를 계산해 저장하고 대시보드로 보여줍니다. 대시보드에서 앵커와 Tag로 명령(점검, 재시작, 경보)을 보낼 수도 있습니다.
+화재 현장에서 고립된 요구조자의 위치를 UWB로 찾는 시제품입니다. 요구조자가 지닌 Tag와 고정 앵커 3대가 거리를 재고, Raspberry Pi가 위치를 계산해 저장하고 대시보드로 보여줍니다. 기존 전체 화면과 명령 API로 앵커 점검·재시작·Tag 경보를 요청할 수도 있습니다.
+
+**화면 버전 (2026-11-09)**: 시험 실행 기준 8080 포트는 ZIP 원본 경량 화면, 8081 포트는 기존 전체 화면입니다. ZIP의 `fire_tag_web_lite.py`·`web/index_lite.html`은 수정 없이 보존하고, 기존 전체 화면은 `web/index_full.html`로 분리합니다. 수신기·DB는 공유하고 웹 서버는 버전별로 분리합니다. [11/16 경량 버전 발표 자료·실제 시험 영상](발표자료/11/16/README.md), [두 Wi-Fi 설정과 접속](docs/DUAL_WIFI.md).
 
 - 부품: DWM3000EVB ×4, ESP32 DevKitC ×3(앵커), LOLIN D32 ×1(요구조자 Tag) — [부품표](FIRE-TAG_피요구조자_발표용_최소부품.md)
 - 서버: Raspberry Pi 4 + Ubuntu Server 22.04 / 24.04
@@ -77,8 +79,10 @@ firmware/
 raspberrypi/
   fire_tag_receiver.py           수신 + 다변측량 + SQLite 저장 + 명령 전송·경보 동기화
   anchor_pair_calibration.py     앵커 간 직접 거리로 삼각형 검증·상대 좌표 설정
-  fire_tag_web.py                대시보드 웹 서버·명령 API (표준 라이브러리만 사용)
-  web/index.html                 대시보드 (외부 CDN·폰트 없음 → 인터넷 없이 동작)
+  fire_tag_web.py                기존 전체 대시보드 웹 서버·명령 API
+  fire_tag_web_lite.py           ZIP 원본 경량 웹 서버 (표준 라이브러리만 사용)
+  web/index_lite.html            ZIP 원본 경량 화면 (8080): 위치 점·앵커 상태·최근 이벤트 10개
+  web/index_full.html            기존 전체 화면 (8081): 동선·경보·명령·CSV
   config.json                    Anchor 좌표(m)·높이·보정값·방 크기
   setup_pi.sh                    pyserial·NetworkManager 설치 + 부팅 시 자동 실행 서비스 2개 등록
   setup_hotspot.sh               Ubuntu netplan으로 wlan0를 핫스팟으로 전환 (10.42.0.1)
@@ -145,7 +149,7 @@ chmod +x setup_pi.sh setup_hotspot.sh
 - "인터넷 연결 없음" 알림이 뜨면 **"연결 유지"**를 선택합니다. 안드로이드는 모바일 데이터로 우회할 수 있으니 시연 중에는 **모바일 데이터를 꺼 두세요.**
 - 핫스팟 비밀번호를 아는 사람은 누구나 경보·재시작 버튼을 누를 수 있습니다. 비밀번호는 팀원끼리만 공유하세요.
 
-**대시보드**: 평면도(앵커, 앵커별 측정 거리 원, 최근 30초 이동 경로, 현재 위치), 요구조자 좌표·갱신 시각·**경보 켜기/끄기와 Tag 수신 확인**, 앵커 상태·**전체 점검·앵커별 재시작**과 결과(앵커별 성공·실패), 이벤트 기록. 0.5초마다 갱신됩니다.
+**경량 대시보드 (`:8080`)**: 위치 점, 앵커 상태, 최근 이벤트 10개를 표시합니다. 동선·경보·명령·CSV 버튼은 표시하지 않습니다. **기존 전체 대시보드 (`:8081`)**: 평면도(앵커, 앵커별 측정 거리 원, 최근 30초 이동 경로, 현재 위치), 요구조자 좌표·갱신 시각·**경보 켜기/끄기와 Tag 수신 확인**, 앵커 상태·**전체 점검·앵커별 재시작**과 결과(앵커별 성공·실패), 이벤트 기록을 유지합니다. 두 화면 모두 0.5초마다 갱신됩니다.
 
 **저장 데이터**: `data/fire_tag.db`(SQLite) — 위치(시각, 좌표, 잔차, 앵커별 거리), 앵커 상태, 이벤트, 명령 기록과 결과. "최근 1시간 CSV" 버튼으로 엑셀용 파일을 받을 수 있습니다(`/api/positions.csv?minutes=N`, 최대 1440분).
 
@@ -160,14 +164,14 @@ curl -X POST -H 'Content-Type: application/json' -d '{"tag":0,"on":true}'       
 ```bash
 journalctl -u fire-tag-receiver -f        # 수신 로그 (위치 계산 결과, 보낸 CMD 줄)
 sudo systemctl restart fire-tag-receiver  # config.json(앵커 좌표·bias) 수정 후 필수 — 위치 계산은 시작 시 읽은 값 사용
-sudo systemctl restart fire-tag-web       # web/index.html 수정 후
+sudo systemctl restart fire-tag-web       # web/index_lite.html 또는 index_full.html 수정 후
 sudo systemctl stop fire-tag-receiver     # 수동으로 수신기를 돌려 볼 때
 python3 fire_tag_receiver.py --record raw.jsonl   # 원본 기록 → 나중에 --replay raw.jsonl 로 재계산
 ```
 
 **Mac에서 미리 보기**(Pi 없이 화면 확인): `python3 fire_tag_web.py --port 8000 --db <db파일>` 실행 후 http://localhost:8000을 엽니다.
 
-**현재 Wi-Fi에서 실행** — 핫스팟 전환 없이 `./run_dev.sh start`로 수신기와 웹을 함께 실행합니다. 주소는 `http://<Pi IP>:8080`입니다. 두 프로세스 중 하나라도 시작에 실패하면 오류 로그를 출력하고 둘 다 중지합니다. `./run_dev.sh status`로 로그를 확인합니다.
+**현재 Wi-Fi에서 실행** — 핫스팟 전환 없이 `./run_dev.sh start`로 수신기와 웹을 함께 실행합니다. 경량 주소는 `http://<Pi IP>:8080`, 기존 전체 화면은 `http://<Pi IP>:8081`입니다. 시작할 때마다 앵커 세 쌍을 새로 측정하므로 시험 중에는 앵커를 고정하세요. 세 프로세스 중 하나라도 시작에 실패하면 오류 로그를 출력하고 둘 다 중지합니다. `./run_dev.sh status`로 로그를 확인합니다.
 
 `Permission denied`가 나오면 `sudo usermod -aG dialout "$USER"` 후 SSH에 다시 로그인합니다. 현재 셸에서 바로 실행하려면 `sg dialout -c './run_dev.sh start'`를 사용합니다.
 
@@ -188,7 +192,7 @@ python3 fire_tag_receiver.py --record raw.jsonl   # 원본 기록 → 나중에 
 3. Anchor 1·2를 켜고 Anchor 0 출력에 `"via":"espnow"` 줄이 나오는지 확인합니다.
 4. 세 Anchor를 일직선이 아닌 고정 삼각형으로 설치하고 위의 직접 거리 자동 설정을 실행합니다. 실측 좌표를 쓸 때는 `auto_calibrate=false`로 설정하고 좌표(m)를 입력합니다.
 5. Pi에서 `./setup_pi.sh` → `./setup_hotspot.sh` 순서로 실행한 뒤 휴대폰으로 http://10.42.0.1에 접속합니다.
-6. 대시보드에서 **전체 점검**을 눌러 "A0 성공, A1 성공, A2 성공"이 나오는지 확인합니다(Pi→ESP32 경로 확인).
+6. 기존 전체 대시보드(`:8081`)에서 **전체 점검**을 눌러 "A0 성공, A1 성공, A2 성공"이 나오는지 확인합니다(Pi→ESP32 경로 확인).
 7. **경보 켜기**를 누르고 Tag LED(LOLIN D32 기판의 내장 LED, IO5)가 0.25초 간격으로 깜빡이는지, 화면에 "Tag가 경보를 받았습니다"가 뜨는지 확인합니다.
 
 ## 7. 데이터 형식
