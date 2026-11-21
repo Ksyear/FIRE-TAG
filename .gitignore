@@ -1,6 +1,9 @@
 # macOS
 .DS_Store
 
+# PowerPoint temporary lock files
+~$*.pptx
+
 # Python
 __pycache__/
 *.pyc
