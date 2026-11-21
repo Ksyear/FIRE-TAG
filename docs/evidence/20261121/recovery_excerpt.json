@@ -1,0 +1,33 @@
+{
+  "method": "Tag EN held for 15 seconds; deliberate absence, not a stuck-radio injection",
+  "rows": [
+    {
+      "elapsed_s": 2.148,
+      "line": "# UWB health action=rearm DEV_ID=0xDECA0302 SYS_STATUS=0x00000000 SYS_STATE=0x01170500"
+    },
+    {
+      "elapsed_s": 2.158,
+      "line": "# UWB recovery attempt=1 action=rearm ready=true silence_ms=2000 last_status=0x00000000 last_state=0x00000000 (awaiting ranging)"
+    },
+    {
+      "elapsed_s": 10.147,
+      "line": "# UWB health action=reinit DEV_ID=0xDECA0302 SYS_STATUS=0x00000000 SYS_STATE=0x01170500"
+    },
+    {
+      "elapsed_s": 10.198,
+      "line": "# UWB ready: DEV_ID=0xDECA0302 channel=9"
+    },
+    {
+      "elapsed_s": 10.209,
+      "line": "# UWB recovery attempt=2 action=reinit ready=true silence_ms=10000 last_status=0x00000000 last_state=0x00000000 (awaiting ranging)"
+    },
+    {
+      "elapsed_s": 10.216,
+      "line": "# UWB health action=after_reinit DEV_ID=0xDECA0302 SYS_STATUS=0x03800007 SYS_STATE=0x01170500"
+    },
+    {
+      "elapsed_s": 15.598,
+      "line": "{\"type\":\"range\",\"anchor\":0,\"tag\":0,\"seq\":0,\"range_mm\":4198,\"tag_alert\":false,\"anchor_ms\":209584,\"via\":\"local\"}"
+    }
+  ]
+}

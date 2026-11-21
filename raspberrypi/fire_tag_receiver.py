@@ -18,7 +18,7 @@ requested on the dashboard is kept in sync on every anchor.
   python3 fire_tag_receiver.py --record raw.jsonl --csv positions.csv
   python3 fire_tag_receiver.py --replay raw.jsonl     # re-run a recorded session
 
-Live mode uses pyserial if installed, otherwise the standard library (termios).
+Live mode uses POSIX serial access from the standard library (Linux/macOS).
 """
 
 import argparse
@@ -83,6 +83,11 @@ CREATE TABLE IF NOT EXISTS commands (  -- queued by fire_tag_web.py
   acks TEXT NOT NULL DEFAULT '{}'           -- {"anchor": true/false}
 );
 CREATE INDEX IF NOT EXISTS commands_status ON commands(status);
+CREATE TABLE IF NOT EXISTS range_latest (
+  tag INTEGER NOT NULL, anchor INTEGER NOT NULL,
+  t REAL NOT NULL, seq INTEGER NOT NULL, range_mm INTEGER NOT NULL,
+  PRIMARY KEY (tag, anchor)
+);
 CREATE TABLE IF NOT EXISTS calibration (  -- anchor self-calibration status (one row)
   id INTEGER PRIMARY KEY CHECK (id = 1),
   t REAL, status TEXT, samples INTEGER, needed INTEGER, message TEXT, result TEXT
@@ -133,6 +138,12 @@ class Store:
 
     def event(self, kind, message):
         self.db.execute("INSERT INTO events (t, kind, message) VALUES (?,?,?)", (time.time(), kind, message))
+        self.dirty = True
+
+    def range_seen(self, tag, anchor, seq, range_mm):
+        self.db.execute(
+            "INSERT OR REPLACE INTO range_latest (tag, anchor, t, seq, range_mm) VALUES (?,?,?,?,?)",
+            (tag, anchor, time.time(), seq, range_mm))
         self.dirty = True
 
     # -- commands (rows inserted by the web server) ---------------------------
@@ -258,33 +269,17 @@ def find_anchor_port():
 class SerialLink:
     """Anchor 0's USB serial: JSON lines in, CMD lines out.
 
-    Uses pyserial when installed; otherwise opens the port with termios from
-    the standard library, so the Pi can run without installing packages.
+    Keep serial I/O bounded and reconnect the same configured USB port.
     """
 
     def __init__(self, port, baud):
-        try:
-            import serial  # imported here so --replay works without pyserial
-        except ImportError:
-            serial = None
-        if serial:
-            self.ser = serial.Serial()
-            self.ser.port = port
-            self.ser.baudrate = baud
-            self.ser.timeout = 0.1
-            # Keep DTR/RTS low so opening the port does not reset the ESP32.
-            self.ser.dtr = False
-            self.ser.rts = False
-            self.ser.open()
-            self._read = lambda: self.ser.read(512)
-            self._write = self.ser.write
-            backend = "pyserial"
-        else:
-            self.fd = self._open_termios(port, baud)
-            self._read = self._read_termios
-            self._write = lambda data: os.write(self.fd, data)
-            backend = "termios"
-        print(f"# listening on {port} @ {baud} ({backend})", file=sys.stderr)
+        self.port, self.baud = port, baud
+        self.error = None
+        self.retry_at = 0.0
+        self.needs_separator = True
+        self.last_write_partial = False
+        self.fd = self._open_termios(port, baud)
+        print(f"# listening on {port} @ {baud} (termios)", file=sys.stderr)
 
     @staticmethod
     def _open_termios(port, baud):
@@ -294,15 +289,33 @@ class SerialLink:
         import tty
 
         fd = os.open(port, os.O_RDWR | os.O_NOCTTY | os.O_NONBLOCK)
-        tty.setraw(fd)
-        attrs = termios.tcgetattr(fd)
-        attrs[4] = attrs[5] = getattr(termios, f"B{baud}")
-        attrs[2] |= termios.CLOCAL | termios.CREAD
-        attrs[2] &= ~(termios.HUPCL | getattr(termios, "CRTSCTS", 0))
-        termios.tcsetattr(fd, termios.TCSANOW, attrs)
-        # Same as pyserial path: DTR/RTS low so the ESP32 keeps running.
-        fcntl.ioctl(fd, termios.TIOCMBIC, struct.pack("I", termios.TIOCM_DTR | termios.TIOCM_RTS))
+        try:
+            tty.setraw(fd, termios.TCSANOW)
+            attrs = termios.tcgetattr(fd)
+            attrs[4] = attrs[5] = getattr(termios, f"B{baud}")
+            attrs[2] |= termios.CLOCAL | termios.CREAD
+            attrs[2] &= ~(termios.HUPCL | getattr(termios, "CRTSCTS", 0))
+            termios.tcsetattr(fd, termios.TCSANOW, attrs)
+            # Keep reset/boot lines deasserted, including when closing the port.
+            fcntl.ioctl(fd, termios.TIOCMBIC, struct.pack("I", termios.TIOCM_DTR | termios.TIOCM_RTS))
+        except (OSError, termios.error) as e:
+            os.close(fd)
+            raise OSError(*e.args) from e
         return fd
+
+    def close(self):
+        if self.fd is not None:
+            fd, self.fd = self.fd, None
+            os.close(fd)
+
+    def _disconnected(self, error):
+        message = str(error)
+        if self.error != message:
+            print(f"# serial disconnected: {message}; retrying {self.port}", file=sys.stderr)
+        self.error = message
+        self.needs_separator = True
+        self.close()
+        self.retry_at = time.monotonic() + 1.0
 
     def _read_termios(self):
         if not select.select([self.fd], [], [], 0.1)[0]:
@@ -315,7 +328,26 @@ class SerialLink:
     def lines(self):
         buf = b""
         while True:
-            chunk = self._read()
+            if self.fd is None:
+                buf = b""  # a partial line belongs to the previous connection
+                if time.monotonic() < self.retry_at:
+                    time.sleep(0.1)
+                    yield None
+                    continue
+                try:
+                    self.fd = self._open_termios(self.port, self.baud)
+                except OSError as e:
+                    self._disconnected(e)
+                    yield None
+                    continue
+                self.error = None
+                print(f"# serial reconnected: {self.port}", file=sys.stderr)
+            try:
+                chunk = self._read_termios()
+            except OSError as e:
+                self._disconnected(e)
+                yield None
+                continue
             if not chunk:
                 yield None  # idle tick so timeouts and commands still run
                 continue
@@ -325,7 +357,32 @@ class SerialLink:
                 yield line.decode("utf-8", errors="replace").strip()
 
     def write(self, line):
-        self._write((line + "\n").encode("ascii"))
+        self.last_write_partial = False
+        if self.fd is None:
+            return False
+        # A previous connection may have left an unfinished command on the MCU.
+        data = (("\n" if self.needs_separator else "") + line + "\n").encode("ascii")
+        deadline = time.monotonic() + 1.0
+        accepted = 0
+        try:
+            while data:
+                left = deadline - time.monotonic()
+                if left <= 0 or not select.select([], [self.fd], [], left)[1]:
+                    raise TimeoutError("serial write timed out")
+                try:
+                    n = os.write(self.fd, data)
+                except BlockingIOError:
+                    continue
+                if n <= 0:
+                    raise OSError("serial port closed during write")
+                accepted += n
+                data = data[n:]
+            self.needs_separator = False
+            return True
+        except OSError as e:
+            self.last_write_partial = accepted > 0
+            self._disconnected(e)
+            return False
 
 
 def file_lines(path):
@@ -394,9 +451,19 @@ class Receiver:
         except json.JSONDecodeError:
             return
         anchor = msg.get("anchor")
-        if anchor is not None:
-            self.mark_anchor(int(anchor), msg, now)
+        if type(anchor) is not int or anchor not in self.anchors:
+            return
         kind = msg.get("type")
+        if kind in ("range", "anchor_range"):
+            target = msg.get("tag" if kind == "range" else "peer")
+            seq, mm = msg.get("seq"), msg.get("range_mm")
+            if any(type(v) is not int for v in (target, seq, mm)) or not (0 <= seq < SEQ_MOD and 0 < mm < 50000):
+                return
+            if kind == "range" and not 0 <= target < MAX_TAGS:
+                return
+            if kind == "anchor_range" and (target not in self.anchors or target == anchor):
+                return
+        self.mark_anchor(anchor, msg, now)
         if kind == "range":
             self.add_range(msg, now)
         elif kind == "anchor_range" and self.pair_cal and self.auto_cal:
@@ -428,6 +495,8 @@ class Receiver:
             print(f"[anchor {anchor}] not in config.json, range ignored")
             return
         tag, seq = int(msg["tag"]), int(msg["seq"])
+        if self.store:
+            self.store.range_seen(tag, anchor, seq, msg["range_mm"])
         slant = msg["range_mm"] / 1000.0 - self.anchors[anchor].get("bias_m", 0.0)
         group = self.groups.setdefault((tag, seq), {"t": now, "ranges": {}, "slant": {}, "alert": False})
         group["ranges"][anchor] = horizontal_range(slant, self.anchors[anchor], self.tag_z)
@@ -499,7 +568,7 @@ class Receiver:
     def send_command(self, wire_id, target, name, arg=0):
         line = f"CMD {wire_id} {target} {name} {arg}"
         print(f"# -> {line}")
-        self.link.write(line)
+        return self.link.write(line) is not False
 
     def handle_ack(self, msg):
         wire_id = int(msg.get("id", -1))
@@ -531,8 +600,11 @@ class Receiver:
                 self.event("command_failed", f"{self.command_label(row)}: "
                            + ", ".join(f"A{a}" for a in missing) + " 응답 없음")
                 continue
-            self.send_command(row["id"] % CMD_ID_MOD, row["target"], row["cmd"])
-            self.store.update_command(row["id"], status="sent", attempts=row["attempts"] + 1, t_sent=wall)
+            if self.send_command(row["id"] % CMD_ID_MOD, row["target"], row["cmd"]):
+                self.store.update_command(row["id"], status="sent", attempts=row["attempts"] + 1, t_sent=wall)
+            elif row["cmd"] == "reboot" and getattr(self.link, "last_write_partial", False):
+                self.store.update_command(row["id"], status="failed", attempts=row["attempts"] + 1, t_sent=wall)
+                self.event("command_failed", f"{self.command_label(row)}: USB 부분 전송 · 실행 여부 불명, 자동 재전송 중단")
 
         # Rescue alert: the dashboard stores the wanted state; make every
         # online anchor match it (also repairs anchors that rebooted).
@@ -544,8 +616,8 @@ class Receiver:
             if now - self.alert_sent_at.get(anchor, -ALERT_RESYNC_S) < ALERT_RESYNC_S:
                 continue
             self.sync_id = (self.sync_id + 1) % 0x800
-            self.send_command(CMD_ID_MOD + self.sync_id, anchor, "alert", desired)
-            self.alert_sent_at[anchor] = now
+            if self.send_command(CMD_ID_MOD + self.sync_id, anchor, "alert", desired):
+                self.alert_sent_at[anchor] = now
 
     # -- periodic checks ---------------------------------------------------
     # -- anchor self-calibration ---------------------------------------------
@@ -707,9 +779,14 @@ def main():
     link = SerialLink(args.port or config.get("serial_port") or find_anchor_port(), baud) if live else None
     lines = link.lines() if link else file_lines(args.replay)
     rx = Receiver(config, csv_writer, store, link, live=live, config_path=args.config)
+    serial_error = None
     try:
         for line in lines:
             now = time.monotonic()
+            if link and link.error != serial_error:
+                serial_error = link.error
+                rx.event("usb_disconnected" if serial_error else "usb_connected",
+                         "A0 USB 연결 중단: " + serial_error if serial_error else "A0 USB 연결 복구")
             if line is not None:
                 if record and line:
                     record.write(line + "\n")
@@ -720,6 +797,8 @@ def main():
         pass
     finally:
         rx.finish(time.monotonic())
+        if link:
+            link.close()
         if store:
             store.close()
         if csv_file:

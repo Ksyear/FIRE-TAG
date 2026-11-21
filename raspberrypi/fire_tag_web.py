@@ -17,6 +17,7 @@ import argparse
 import csv
 import io
 import json
+import math
 import sqlite3
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -24,8 +25,10 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 HERE = Path(__file__).resolve().parent
-TRAIL_S = 30          # seconds of path shown behind each tag
+TRAIL_S = 15          # display window; full coordinates remain in the DB/CSV
 TRAIL_GAP_S = 1.0     # longer gaps split the path instead of drawing a jump
+TRAIL_MIN_STEP_M = 0.30
+TRAIL_SAMPLE_S = 0.5
 EVENT_LIMIT = 30
 CSV_MAX_MINUTES = 24 * 60
 COMMAND_LIMIT = 5
@@ -42,12 +45,18 @@ class ApiError(Exception):
 
 def trail_segments(points):
     """[(t, x, y), ...] -> [[[x, y], ...], ...] split at time gaps."""
-    segments, last_t = [], None
+    segments, previous, kept = [], None, None
     for p in points:
-        if last_t is None or p["t"] - last_t > TRAIL_GAP_S:
+        dt = p["t"] - previous["t"] if previous else 0
+        jump = previous and math.hypot(p["x"] - previous["x"], p["y"] - previous["y"]) > max(1.0, 3 * dt)
+        if previous is None or dt > TRAIL_GAP_S or jump:
             segments.append([])
-        segments[-1].append([round(p["x"], 3), round(p["y"], 3)])
-        last_t = p["t"]
+            kept = None
+        if kept is None or (p["t"] - kept["t"] + 1e-6 >= TRAIL_SAMPLE_S and
+                            math.hypot(p["x"] - kept["x"], p["y"] - kept["y"]) >= TRAIL_MIN_STEP_M):
+            segments[-1].append([round(p["x"], 3), round(p["y"], 3)])
+            kept = p
+        previous = p
     return segments
 
 
@@ -77,7 +86,9 @@ class Dashboard:
         now = time.time()
         anchors_cfg = {int(k): v for k, v in cfg["anchors"].items()}
         status, tags, events, commands, alert_desired = {}, [], [], [], {}
+        uwb_ranges = {}
         calibration = None
+        calibrated_at = 0
 
         db = self.connect()
         if db is not None:
@@ -87,10 +98,27 @@ class Dashboard:
                 try:
                     r = db.execute("SELECT * FROM calibration WHERE id=1").fetchone()
                     if r:
+                        if r["status"] == "done":
+                            calibrated_at = r["t"]
+                        result = json.loads(r["result"] or "{}")
+                        counts = result.get("counts", {})
+                        per_pair = r["needed"] / len(counts) if counts else 0
+                        completed = sum(min(n, per_pair) for n in counts.values()) if counts else r["samples"]
                         calibration = {"status": r["status"], "samples": r["samples"], "needed": r["needed"],
-                                       "message": r["message"], "age_s": round(now - r["t"], 1)}
+                                       "message": r["message"], "age_s": round(now - r["t"], 1),
+                                       "pair_counts": counts, "pair_needed": per_pair,
+                                       "distances": result.get("distances"), "spread_m": result.get("spread_m"),
+                                       "progress_pct": min(100, round(100 * completed / max(1, r["needed"])))}
                 except sqlite3.OperationalError:
                     pass  # receiver from before self-calibration
+                if db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='range_latest'").fetchone():
+                    for r in db.execute("SELECT * FROM range_latest"):
+                        if r["anchor"] not in anchors_cfg:
+                            continue
+                        age = max(0, now - r["t"])
+                        uwb_ranges.setdefault(r["tag"], {})[str(r["anchor"])] = {
+                            "range_m": r["range_mm"] / 1000, "age_s": round(age, 1),
+                            "fresh": age <= lost_after, "seq": r["seq"]}
                 for r in db.execute("SELECT tag, alert_on FROM alert_desired"):
                     alert_desired[r["tag"]] = bool(r["alert_on"])
                 for r in db.execute("SELECT * FROM commands ORDER BY id DESC LIMIT ?", (COMMAND_LIMIT,)):
@@ -99,19 +127,29 @@ class Dashboard:
                                      "status": r["status"], "acks": json.loads(r["acks"]),
                                      "age_s": round(now - r["t"], 1)})
                 for r in db.execute("SELECT * FROM tag_latest ORDER BY tag"):
+                    same_frame = not cfg.get("auto_calibrate") and r["t"] >= calibrated_at
                     points = db.execute(
                         "SELECT t, x, y FROM positions WHERE tag=? AND t>=? ORDER BY t",
-                        (r["tag"], r["t"] - TRAIL_S),
+                        (r["tag"], max(r["t"] - TRAIL_S, calibrated_at)),
                     ).fetchall()
                     age = now - r["t"]
                     tags.append({
-                        "id": r["tag"], "x": r["x"], "y": r["y"], "rms": r["rms"], "seq": r["seq"],
-                        "age_s": round(age, 1), "lost": age > lost_after,
+                        "id": r["tag"], "x": r["x"] if same_frame else None,
+                        "y": r["y"] if same_frame else None, "rms": r["rms"], "seq": r["seq"],
+                        "age_s": round(age, 1), "lost": not same_frame or age > lost_after,
                         "ranges": json.loads(r["ranges"]),
-                        "trail": trail_segments(points),
+                        "uwb_ranges": uwb_ranges.get(r["tag"], {}),
+                        "trail": trail_segments(points) if same_frame else [],
                         "alert_desired": alert_desired.get(r["tag"], False),
                         "alert_confirmed": bool(r["alert"]),
                     })
+                positioned = {t["id"] for t in tags}
+                for tid, ranges in sorted(uwb_ranges.items()):
+                    if tid not in positioned:
+                        tags.append({"id": tid, "x": None, "y": None, "rms": None, "seq": None,
+                                     "age_s": None, "lost": True, "ranges": {}, "uwb_ranges": ranges,
+                                     "trail": [], "alert_desired": alert_desired.get(tid, False),
+                                     "alert_confirmed": False})
                 for r in db.execute("SELECT t, kind, message FROM events ORDER BY id DESC LIMIT ?",
                                     (EVENT_LIMIT,)):
                     events.append({"age_s": round(now - r["t"], 1), "kind": r["kind"], "message": r["message"]})

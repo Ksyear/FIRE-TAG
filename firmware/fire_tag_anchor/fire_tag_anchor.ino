@@ -42,6 +42,7 @@ static uint32_t rebootRequestedMs = 0;
 static bool rangePending = false;
 static uint8_t rangePeer = 0;
 static uint16_t rangeCmdId = 0;
+static RadioRecovery radioRecovery;
 
 // ESP-NOW callbacks run in the Wi-Fi task, so hand data to loop() via queues.
 struct Received {
@@ -170,15 +171,19 @@ static void runCommand(uint16_t id, uint8_t cmd, uint8_t arg) {
   publish(r);
 }
 
-// Pi -> gateway: "CMD <id> <target> <name> [arg]", target 255 = all anchors.
+// Pi -> gateway: "CMD <id> <target> <name> <arg>", target 255 = all anchors.
 static void handlePiLine(const char *line) {
   unsigned id = 0, target = 0, arg = 0;
   char name[16] = {};
-  const int fields = sscanf(line, "CMD %u %u %15s %u", &id, &target, name, &arg);
-  if (fields < 3) return;
+  const int fields = sscanf(line, "CMD %5u %3u %15s %3u", &id, &target, name, &arg);
+  if (fields != 4 || id > 65535 || target > 255 || arg > 255) return;
+  // Accept only complete canonical lines; a reconnect can join two fragments.
+  char canonical[48];
+  snprintf(canonical, sizeof(canonical), "CMD %u %u %s %u", id, target, name, arg);
+  if (strcmp(line, canonical) != 0) return;
   const uint8_t cmd = cmdCode(name);
   // Do not truncate an invalid peer into a valid uint8_t, or range all anchors.
-  if (cmd == CMD_RANGE && (fields != 4 || arg >= NUM_ANCHORS || target >= NUM_ANCHORS)) {
+  if (cmd == CMD_RANGE && (arg >= NUM_ANCHORS || target >= NUM_ANCHORS)) {
     arg = NUM_ANCHORS;  // recipients return an explicit negative ACK
   }
   if (target == ANCHOR_ID || target == TARGET_ALL) {
@@ -195,18 +200,21 @@ static void handlePiLine(const char *line) {
 static void readPiSerial() {
   static char line[96];
   static size_t len = 0;
+  static bool discard = false;
   while (Serial.available()) {
     const char ch = char(Serial.read());
     if (ch == '\n' || ch == '\r') {
-      if (len) {
+      if (!discard && len) {
         line[len] = '\0';
         handlePiLine(line);
-        len = 0;
       }
-    } else if (len < sizeof(line) - 1) {
+      len = 0;
+      discard = false;
+    } else if (!discard && ch != '\0' && len < sizeof(line) - 1) {
       line[len++] = ch;
     } else {
-      len = 0;  // overlong line: drop it
+      discard = true;  // discard the entire malformed line, including its tail
+      len = 0;
     }
   }
 }
@@ -252,6 +260,7 @@ static void startListening() {
 }
 
 static void failExchange() {
+  radioRecovery.noteFailure(dwt_read32bitreg(SYS_STATUS_ID));
   dwt_forcetrxoff();
   clearExchangeEvents();
   ++failCount;
@@ -310,6 +319,7 @@ static void rangeWithAnchor(uint8_t peerId, uint16_t id) {
     return;
   }
   clearExchangeEvents();
+  radioRecovery.noteSuccess();
 }
 
 // Called with a good frame waiting in the RX buffer.
@@ -355,6 +365,7 @@ static void respondIfPoll() {
   if (!isFrameFor(rxBuf, len, me, anchorExchange ? FN_ANCHOR_FINAL : FN_FINAL, FINAL_LEN) ||
       get16(rxBuf + IDX_SRC) != source ||
       get16(rxBuf + IDX_CYCLE) != cycle) {
+    radioRecovery.noteFailure(status);
     ++failCount;
     return;
   }
@@ -375,6 +386,7 @@ static void respondIfPoll() {
   const double meters = tofDtu * DWT_TIME_UNITS * SPEED_OF_LIGHT;
 
   ++okCount;
+  radioRecovery.noteSuccess();
   Report r = makeReport(anchorExchange ? REPORT_ANCHOR_RANGE : REPORT_RANGE);
   r.tagId = peerId;
   r.cycleSeq = cycle;
@@ -405,12 +417,13 @@ void setup() {
 }
 
 void loop() {
-  const uint32_t status = dwt_read32bitreg(SYS_STATUS_ID);
+  const uint32_t status = radioRecovery.ready() ? dwt_read32bitreg(SYS_STATUS_ID) : 0;
   if (status & SYS_STATUS_RXFCG_BIT_MASK) {
     dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG_BIT_MASK);
     respondIfPoll();
     startListening();
   } else if (status & (SYS_STATUS_ALL_RX_ERR | SYS_STATUS_ALL_RX_TO)) {
+    radioRecovery.noteFailure(status);
     dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_ALL_RX_ERR | SYS_STATUS_ALL_RX_TO);
     startListening();
   }
@@ -428,13 +441,14 @@ void loop() {
     }
   }
 
-  if (rangePending) {
+  if (rangePending && radioRecovery.ready()) {
     const uint8_t peer = rangePeer;
     const uint16_t id = rangeCmdId;
     rangeWithAnchor(peer, id);
     rangePending = false;
     startListening();  // also runs after timeout, bad response or late TX
   }
+  radioRecovery.check(true);
 
   if (millis() - lastHeartbeatMs >= HEARTBEAT_MS) {
     lastHeartbeatMs = millis();

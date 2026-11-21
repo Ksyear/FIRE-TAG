@@ -4,7 +4,6 @@
 # hotspot step afterwards takes wlan0 away from internet access.
 #
 # Installs
-#   python3-serial                Anchor 0 USB serial
 #   network-manager, dnsmasq-base needed by setup_hotspot.sh: netplan's Wi-Fi
 #                                 access-point mode only works with the
 #                                 NetworkManager renderer, which uses dnsmasq
@@ -29,7 +28,7 @@ if ! grep -qi '^ID=ubuntu' /etc/os-release; then
 fi
 
 sudo apt-get update
-sudo apt-get install -y python3-serial network-manager dnsmasq-base
+sudo apt-get install -y network-manager dnsmasq-base
 mkdir -p "$DIR/data"
 # Serial port access (Ubuntu's default user already has it; harmless otherwise).
 sudo usermod -aG dialout "$RUN_USER"

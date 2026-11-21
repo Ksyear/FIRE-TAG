@@ -28,11 +28,12 @@ inline uint32_t millis() { return 100; }
 inline void delay(int) {}
 struct SerialFake {
   std::string output;
+  std::deque<char> input;
   void printf(const char *fmt, ...) { char b[1024]; va_list a; va_start(a, fmt);
     vsnprintf(b, sizeof(b), fmt, a); va_end(a); output += b; }
   void println(const char *s) { output += std::string(s) + "\n"; }
-  int available() { return 0; }
-  int read() { return 0; }
+  int available() { return input.size(); }
+  int read() { char ch = input.front(); input.pop_front(); return ch; }
   void setTxBufferSize(int) {}
   void begin(int) {}
 } inline Serial;
@@ -42,6 +43,8 @@ struct { void restart() {} } inline ESP;
 RADIO = r'''
 #pragma once
 #define SYS_STATUS_ID 0
+#define SYS_STATE_LO_ID 1
+inline uint32_t dwt_readdevid() { return 0xDECA0302; }
 #define SYS_STATUS_RXFCG_BIT_MASK 1U
 #define SYS_STATUS_TXFRS_BIT_MASK 2U
 #define SYS_STATUS_ALL_RX_TO 4U
@@ -92,7 +95,10 @@ struct { void mode(int) {} void setChannel(int) {}
 struct rx_ctrl_t { int8_t rssi; };
 struct esp_now_recv_info_t { rx_ctrl_t *rx_ctrl; };
 struct esp_now_peer_info_t { uint8_t peer_addr[6]; int channel, ifidx; bool encrypt; };
-inline int esp_now_send(const uint8_t *, const uint8_t *, size_t) { return 0; }
+inline std::vector<std::vector<uint8_t>> espNowFrames;
+inline int esp_now_send(const uint8_t *, const uint8_t *data, size_t len) {
+  espNowFrames.emplace_back(data, data + len); return 0;
+}
 inline int esp_now_init() { return 0; }
 inline int esp_now_register_recv_cb(void (*)(const esp_now_recv_info_t *, const uint8_t *, int)) { return 0; }
 inline int esp_now_add_peer(esp_now_peer_info_t *) { return 0; }
@@ -136,8 +142,8 @@ int main() {
   assert(Serial.output.find("anchor_range") == std::string::npos); // initiator does not invent a range
   Serial.output.clear(); runCommand(125, 4, 0); ack(false);
   Serial.output.clear(); runCommand(126, 4, 3); ack(false);
-  Serial.output.clear(); handlePiLine("CMD 127 0 range 257"); ack(false);
-  Serial.output.clear(); handlePiLine("CMD 128 0 range"); ack(false);
+  Serial.output.clear(); handlePiLine("CMD 127 0 range 257"); assert(Serial.output.empty());
+  Serial.output.clear(); handlePiLine("CMD 128 0 range"); assert(Serial.output.empty());
 
   // An unrelated source cannot advance the initiator to FINAL.
   resetRadio(); runCommand(130, 4, 1);
@@ -181,9 +187,47 @@ int main() {
 }
 '''
 
+COMMAND_TESTS = r'''
+void feed(const std::string &text) {
+  Serial.input.insert(Serial.input.end(), text.begin(), text.end());
+  readPiSerial();
+}
+int main() {
+  alertMask = 5;
+  for (const char *line : {"CMD 61441 0 alert ", "CMD 61441 0 alert CMD 61442 0 alert 1",
+                           "CMD 1 0 alert 1junk", "CMD 1 0 alert 1 CMD 2 0 alert 0",
+                           "CMD 1 0 alert 256", "CMD 1 0 alert -1", "CMD 1 0 alert +1",
+                           "CMD 65536 0 alert 1", "CMD 1 256 alert 1", "CMD1 0 alert 1",
+                           "CMD 1 0 reboot", "CMD 1 0 reboot 0 trailing", "CMD 1 1 alert ",
+                           "CMD 1 1 alert CMD 2 1 alert 1"}) {
+    Serial.output.clear(); handlePiLine(line);
+    assert(alertMask == 5 && !rebootPending && Serial.output.empty() && espNowFrames.empty());
+  }
+  // The receiver's reconnect delimiter must discard an unfinished command,
+  // then accept a complete retry without changing ON into an unintended OFF.
+  feed("CMD 61441 0 alert "); assert(alertMask == 5);
+  feed("\nCMD 61442 0 alert 1\n"); assert(alertMask == 1); ack(true);
+  Serial.output.clear();
+  feed("CMD 61443 0 alert ");
+  feed("\nCMD 61444 0 alert 0\n"); assert(alertMask == 0); ack(true);
+  Serial.output.clear();
+  // An overlong line must not turn its tail into a new command.
+  feed(std::string(96, 'x') + "CMD 1 0 alert 7\n");
+  assert(alertMask == 0 && Serial.output.empty());
+  feed(std::string("CMD 1 0 alert 7\0junk\n", 21));
+  assert(alertMask == 0 && Serial.output.empty());
+  feed("CMD 65535 0 alert 255\n"); assert(alertMask == 255); ack(true);
+  Serial.output.clear(); handlePiLine("CMD 2 0 ping 0"); ack(true);
+  Serial.output.clear(); handlePiLine("CMD 3 0 range 3"); ack(false);
+  handlePiLine("CMD 4 1 alert 3"); assert(espNowFrames.size() == 1);
+  Command forwarded; memcpy(&forwarded, espNowFrames[0].data(), sizeof(forwarded));
+  assert(forwarded.cmdId == 4 && forwarded.target == 1 && forwarded.cmd == CMD_ALERT && forwarded.arg == 3);
+}
+'''
+
 
 class AnchorRangingTest(unittest.TestCase):
-    def test_real_sketch_commands_frames_and_recovery(self):
+    def compile_and_run(self, checks):
         # Keep the real shared frame parser/builder; double only hardware access.
         shared = (ROOT / "libraries/FireTagUwb/src/FireTagUwb.cpp").read_text()
         frames = shared[shared.index("void writeHeader("):shared.index("bool initRadio()")]
@@ -194,12 +238,18 @@ class AnchorRangingTest(unittest.TestCase):
             for name in ("WiFi.h", "esp_now.h", "esp_wifi.h"):
                 (tmp / name).write_text(ESP32 if name == "WiFi.h" else '#include "WiFi.h"\n')
             src = '#include "' + str(ROOT / "fire_tag_anchor/fire_tag_anchor.ino") + '"\n'
-            src += "namespace firetag {\n" + frames + "}\n" + TESTS
+            src += "namespace firetag {\n" + frames + "}\n" + checks
             (tmp / "test.cpp").write_text(src)
             subprocess.run(["c++", "-std=c++17", "-I" + str(tmp),
                             "-I" + str(ROOT / "libraries/FireTagUwb/src"),
                             str(tmp / "test.cpp"), "-o", str(tmp / "test")], check=True)
             subprocess.run([str(tmp / "test")], check=True)
+
+    def test_real_sketch_commands_frames_and_recovery(self):
+        self.compile_and_run(TESTS)
+
+    def test_serial_commands_reject_partial_concatenated_and_overlong_lines(self):
+        self.compile_and_run(TESTS[:TESTS.index("int main()")] + COMMAND_TESTS)
 
 
 if __name__ == "__main__":
