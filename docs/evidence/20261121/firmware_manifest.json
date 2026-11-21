@@ -1,0 +1,19 @@
+{
+  "tag": {
+    "bytes": 287456,
+    "sha256": "d18b824f8d88067c56a21d6b5d271bb3653e4e1e8f71fdba4b6161c020581794"
+  },
+  "anchor0": {
+    "bytes": 922384,
+    "sha256": "bf60db7eb4a54913655255b0273b496f8414f575dbb0d47e034e5be0b3c44550",
+    "variant": "strict USB parser final"
+  },
+  "anchor1": {
+    "bytes": 903264,
+    "sha256": "05a8add1349546ea8a1d24425f4f3f2ae97cc01d6cf1e110568d6cfb257ca370"
+  },
+  "anchor2": {
+    "bytes": 903264,
+    "sha256": "c949bcb344c4bca1fdc58bfae01e77fe3141d170e7cb08113f461d1fc5ba9082"
+  }
+}

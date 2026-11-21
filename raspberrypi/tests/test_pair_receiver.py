@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import sys
 import tempfile
+import time
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -93,6 +94,35 @@ class PairReceiverTests(unittest.TestCase):
         cfg.write_text(json.dumps(self.config))
         dash = Dashboard(Path(self.tmp.name) / "data.db", cfg)
         self.assertGreater(dash.queue_command({"cmd": "ping", "target": "all"})["id"], 0)
+
+    def test_unsent_reboot_keeps_its_attempt_until_the_usb_write_succeeds(self):
+        cmd_id = self.store.db.execute("INSERT INTO commands(t,target,cmd) VALUES(?,?,?)",
+                                      (time.time(), 2, "reboot")).lastrowid
+        self.link.write = lambda line: False
+        self.rx.process_commands(100)
+        self.rx.process_commands(102)
+        row = self.store.db.execute("SELECT * FROM commands WHERE id=?", (cmd_id,)).fetchone()
+        self.assertEqual(row["status"], "pending")
+        self.assertEqual(row["attempts"], 0)
+        self.link.write = lambda line: True
+        self.rx.process_commands(104)
+        row = self.store.db.execute("SELECT * FROM commands WHERE id=?", (cmd_id,)).fetchone()
+        self.assertEqual(row["status"], "sent")
+        self.assertEqual(row["attempts"], 1)
+
+    def test_a_partially_sent_reboot_is_not_automatically_repeated(self):
+        cmd_id = self.store.db.execute("INSERT INTO commands(t,target,cmd) VALUES(?,?,?)",
+                                      (time.time(), 2, "reboot")).lastrowid
+        self.link.last_write_partial = True
+        calls = []
+        self.link.write = lambda line: calls.append(line) or False
+        self.rx.process_commands(100)
+        self.rx.process_commands(102)
+        row = self.store.db.execute("SELECT * FROM commands WHERE id=?", (cmd_id,)).fetchone()
+        self.assertEqual(row["status"], "failed")
+        self.assertEqual(len(calls), 1)
+        event = self.store.db.execute("SELECT message FROM events ORDER BY id DESC").fetchone()
+        self.assertIn("실행 여부 불명", event["message"])
 
 
 if __name__ == "__main__":

@@ -25,6 +25,8 @@ class StartupTests(unittest.TestCase):
         for role in ("receiver", "web", "web_lite"):
             (self.root / f"fire_tag_{role}.py").write_text(
                 "import os, sys, time\n"
+                "from pathlib import Path\n"
+                "Path(__file__).with_suffix('.args').write_text(' '.join(sys.argv))\n"
                 f"if os.environ.get('FAIL_ROLE') == '{role}':\n"
                 f"    print('{role} startup failed', flush=True)\n"
                 "    sys.exit(1)\n"
@@ -55,15 +57,15 @@ class StartupTests(unittest.TestCase):
         self.assertIn("web startup failed", result.stderr)
         self.assertNotIn("Dashboard:", result.stdout)
 
-    def test_lite_failure_is_reported_even_when_full_web_runs(self):
+    def test_unused_lite_server_does_not_prevent_main_dashboard_startup(self):
         result = self.start("web_lite")
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("web_lite startup failed", result.stderr)
-        self.assertNotIn("Dashboard:", result.stdout)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse((self.root / "fire_tag_web_lite.args").exists())
 
-    def test_success_requires_all_three_processes(self):
+    def test_main_dashboard_is_served_on_the_default_port(self):
         result = self.start()
         self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("--port 8080", (self.root / "fire_tag_web.args").read_text())
 
     def test_each_start_rechecks_anchor_positions_without_erasing_config(self):
         result = self.start()

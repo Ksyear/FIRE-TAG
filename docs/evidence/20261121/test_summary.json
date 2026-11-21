@@ -1,0 +1,254 @@
+{
+  "date": "2026-11-21",
+  "metrics": "Tag RESP reception and FINAL TX; not physical position accuracy",
+  "results": [
+    {
+      "source": "A1_lid_open_164837.json",
+      "condition": "A1_lid_open",
+      "material": "PLA suspected; approximately 2mm; not independently measured",
+      "wifi": "Mobile_504",
+      "duration_s": 60.03,
+      "tag_summary_count": 60,
+      "anchors": {
+        "0": {
+          "ok": 600,
+          "attempts": 600,
+          "success_pct": 100.0
+        },
+        "1": {
+          "ok": 600,
+          "attempts": 600,
+          "success_pct": 100.0
+        },
+        "2": {
+          "ok": 0,
+          "attempts": 600,
+          "success_pct": 0.0
+        }
+      },
+      "api_samples": 114,
+      "api_errors": [],
+      "all_anchors_online": true,
+      "tag_lost_samples": 114,
+      "max_tag_age_s": 237.9,
+      "unique_tag_sequences": 1
+    },
+    {
+      "source": "A2_lid_open_after_reboot_165159.json",
+      "condition": "A2_lid_open_after_reboot",
+      "material": "PLA suspected; approximately 2mm; not independently measured",
+      "wifi": "Mobile_504",
+      "duration_s": 60.05,
+      "tag_summary_count": 60,
+      "anchors": {
+        "0": {
+          "ok": 600,
+          "attempts": 600,
+          "success_pct": 100.0
+        },
+        "1": {
+          "ok": 600,
+          "attempts": 600,
+          "success_pct": 100.0
+        },
+        "2": {
+          "ok": 600,
+          "attempts": 600,
+          "success_pct": 100.0
+        }
+      },
+      "api_samples": 115,
+      "api_errors": [],
+      "all_anchors_online": true,
+      "tag_lost_samples": 0,
+      "max_tag_age_s": 0.4,
+      "unique_tag_sequences": 115
+    },
+    {
+      "source": "B1_enclosed_164404.json",
+      "condition": "inside container; user says PLA likely, thickness approximately 2mm",
+      "wifi": "Mobile_504",
+      "duration_s": 60.05,
+      "tag_summary_count": 60,
+      "anchors": {
+        "0": {
+          "ok": 600,
+          "attempts": 600,
+          "success_pct": 100.0
+        },
+        "1": {
+          "ok": 600,
+          "attempts": 600,
+          "success_pct": 100.0
+        },
+        "2": {
+          "ok": 0,
+          "attempts": 600,
+          "success_pct": 0.0
+        }
+      },
+      "api_samples": 114,
+      "api_errors": [],
+      "all_anchors_online": true,
+      "tag_lost_samples": 114,
+      "max_tag_age_s": 118.0,
+      "unique_tag_sequences": 1
+    },
+    {
+      "source": "B2_lid_closed_after_reboot_165653.json",
+      "condition": "B2_lid_closed_after_reboot",
+      "material": "PLA suspected; approximately 2mm; not independently measured",
+      "wifi": "Mobile_504",
+      "duration_s": 60.05,
+      "tag_summary_count": 60,
+      "anchors": {
+        "0": {
+          "ok": 602,
+          "attempts": 602,
+          "success_pct": 100.0
+        },
+        "1": {
+          "ok": 596,
+          "attempts": 602,
+          "success_pct": 99.0
+        },
+        "2": {
+          "ok": 602,
+          "attempts": 602,
+          "success_pct": 100.0
+        }
+      },
+      "api_samples": 115,
+      "api_errors": [],
+      "all_anchors_online": true,
+      "tag_lost_samples": 0,
+      "max_tag_age_s": 0.3,
+      "unique_tag_sequences": 115
+    },
+    {
+      "source": "C1_second_box_closed_after_firmware_174329.json",
+      "condition": "C1_second_box_closed_after_firmware",
+      "material": "not confirmed for second box",
+      "wifi": "Mobile_504",
+      "duration_s": 60.03,
+      "tag_summary_count": 60,
+      "anchors": {
+        "0": {
+          "ok": 601,
+          "attempts": 601,
+          "success_pct": 100.0
+        },
+        "1": {
+          "ok": 601,
+          "attempts": 601,
+          "success_pct": 100.0
+        },
+        "2": {
+          "ok": 501,
+          "attempts": 601,
+          "success_pct": 83.36
+        }
+      },
+      "api_samples": 115,
+      "api_errors": [],
+      "all_anchors_online": true,
+      "tag_lost_samples": 15,
+      "max_tag_age_s": 9.7,
+      "unique_tag_sequences": 97
+    },
+    {
+      "source": "C2_second_box_lid_open_174546.json",
+      "condition": "C2_second_box_lid_open",
+      "material": "not confirmed for second box",
+      "wifi": "Mobile_504",
+      "duration_s": 60.04,
+      "tag_summary_count": 60,
+      "anchors": {
+        "0": {
+          "ok": 600,
+          "attempts": 600,
+          "success_pct": 100.0
+        },
+        "1": {
+          "ok": 600,
+          "attempts": 600,
+          "success_pct": 100.0
+        },
+        "2": {
+          "ok": 600,
+          "attempts": 600,
+          "success_pct": 100.0
+        }
+      },
+      "api_samples": 115,
+      "api_errors": [],
+      "all_anchors_online": true,
+      "tag_lost_samples": 0,
+      "max_tag_age_s": 0.2,
+      "unique_tag_sequences": 115
+    },
+    {
+      "source": "C3_second_box_closed_repeat_174755.json",
+      "condition": "C3_second_box_closed_repeat",
+      "material": "not confirmed for second box",
+      "wifi": "Mobile_504",
+      "duration_s": 60.02,
+      "tag_summary_count": 60,
+      "anchors": {
+        "0": {
+          "ok": 600,
+          "attempts": 600,
+          "success_pct": 100.0
+        },
+        "1": {
+          "ok": 600,
+          "attempts": 600,
+          "success_pct": 100.0
+        },
+        "2": {
+          "ok": 600,
+          "attempts": 600,
+          "success_pct": 100.0
+        }
+      },
+      "api_samples": 115,
+      "api_errors": [],
+      "all_anchors_online": true,
+      "tag_lost_samples": 0,
+      "max_tag_age_s": 0.4,
+      "unique_tag_sequences": 115
+    },
+    {
+      "source": "C4_moving_after_final_firmware_175406.json",
+      "condition": "C4_moving_after_final_firmware",
+      "material": "not confirmed for second box",
+      "wifi": "Mobile_504",
+      "duration_s": 60.02,
+      "tag_summary_count": 60,
+      "anchors": {
+        "0": {
+          "ok": 600,
+          "attempts": 600,
+          "success_pct": 100.0
+        },
+        "1": {
+          "ok": 600,
+          "attempts": 600,
+          "success_pct": 100.0
+        },
+        "2": {
+          "ok": 600,
+          "attempts": 600,
+          "success_pct": 100.0
+        }
+      },
+      "api_samples": 115,
+      "api_errors": [],
+      "all_anchors_online": true,
+      "tag_lost_samples": 0,
+      "max_tag_age_s": 0.4,
+      "unique_tag_sequences": 115,
+      "window_note": "starts after the 10.103-second position outage in the video; overlaps the latter part of the video and continues afterwards"
+    }
+  ]
+}

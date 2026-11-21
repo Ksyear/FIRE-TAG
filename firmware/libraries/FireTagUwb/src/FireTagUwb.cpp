@@ -46,6 +46,45 @@ bool isFrameFor(const uint8_t *frame, size_t len, uint16_t myAddr,
          frame[IDX_FN] == fn;
 }
 
+static void printRadioHealth(const char *action) {
+  Serial.printf("# UWB health action=%s DEV_ID=0x%08lX SYS_STATUS=0x%08lX SYS_STATE=0x%08lX\n",
+                action, static_cast<unsigned long>(dwt_readdevid()),
+                static_cast<unsigned long>(dwt_read32bitreg(SYS_STATUS_ID)),
+                static_cast<unsigned long>(dwt_read32bitreg(SYS_STATE_LO_ID)));
+}
+
+void RadioRecovery::check(bool listen) {
+  const uint32_t now = millis();
+  const uint32_t silence = now - lastSuccessMs_;
+  if (silence < 2000) return;
+  const bool reinitialize = rearmed_;
+  if (reinitialize && (silence < 10000 || now - lastInitMs_ < 10000)) return;
+
+  printRadioHealth(reinitialize ? "reinit" : "rearm");
+  ++attempts_;
+  dwt_forcetrxoff();
+  if (reinitialize) {
+    lastInitMs_ = now;
+    ready_ = initRadio();  // one attempt; keep the MCU/alert state and main loop alive
+  }
+  rearmed_ = true;
+  if (ready_) {
+    dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG_BIT_MASK | SYS_STATUS_TXFRS_BIT_MASK |
+                                         SYS_STATUS_ALL_RX_TO | SYS_STATUS_ALL_RX_ERR);
+    if (listen) {
+      dwt_setrxtimeout(0);
+      dwt_setpreambledetecttimeout(0);
+      dwt_rxenable(DWT_START_RX_IMMEDIATE);
+    }
+  }
+  Serial.printf("# UWB recovery attempt=%lu action=%s ready=%s silence_ms=%lu "
+                "last_status=0x%08lX last_state=0x%08lX (awaiting ranging)\n",
+                static_cast<unsigned long>(attempts_), reinitialize ? "reinit" : "rearm",
+                ready_ ? "true" : "false", static_cast<unsigned long>(silence),
+                static_cast<unsigned long>(lastStatus_), static_cast<unsigned long>(lastState_));
+  if (reinitialize) printRadioHealth("after_reinit");
+}
+
 bool initRadio() {
   // Fix the SPI pins first; the library's own SPI.begin() is then a no-op.
   SPI.begin(PIN_SCK, PIN_MISO, PIN_MOSI);

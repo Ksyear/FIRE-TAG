@@ -8,11 +8,15 @@
 //
 // Board: "LOLIN D32" (esp32:esp32:d32). Needs libraries DW3000 and FireTagUwb.
 
+#ifndef TAG_ID
+#define TAG_ID 0
+#endif
+
 #include <FireTagUwb.h>
 
 using namespace firetag;
 
-constexpr uint8_t TAG_ID = 0;
+static_assert(TAG_ID >= 0 && TAG_ID < MAX_TAGS, "TAG_ID must be 0..MAX_TAGS-1");
 constexpr uint32_t CYCLE_MS = 100;    // 10 Hz; one cycle of 3 exchanges takes ~15 ms
 constexpr uint32_t SUMMARY_MS = 1000; // USB debug summary period
 constexpr int PIN_LED = 5;            // LOLIN D32 onboard LED (3V3-2k-LED-IO5): LOW = on
@@ -36,6 +40,7 @@ static uint16_t okCount[NUM_ANCHORS];
 static uint16_t tryCount[NUM_ANCHORS];
 static Result lastFail[NUM_ANCHORS];
 static uint32_t lastSummaryMs = 0;
+static RadioRecovery radioRecovery;
 
 static void clearExchangeEvents() {
   dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG_BIT_MASK | SYS_STATUS_TXFRS_BIT_MASK |
@@ -47,6 +52,8 @@ static void clearExchangeEvents() {
 static Result rangeWith(uint8_t anchorId) {
   const uint16_t me = tagAddr(TAG_ID);
   const uint16_t anchor = anchorAddr(anchorId);
+  dwt_forcetrxoff();
+  clearExchangeEvents();
 
   uint8_t poll[POLL_LEN];
   writeHeader(poll, macSeq++, anchor, me, FN_POLL, cycleSeq);
@@ -55,6 +62,7 @@ static Result rangeWith(uint8_t anchorId) {
   dwt_setpreambledetecttimeout(0);
   loadTxFrame(poll, POLL_LEN);
   if (dwt_starttx(DWT_START_TX_IMMEDIATE | DWT_RESPONSE_EXPECTED) != DWT_SUCCESS) {
+    radioRecovery.noteFailure(dwt_read32bitreg(SYS_STATUS_ID));
     clearExchangeEvents();
     return EX_TX_FAIL;
   }
@@ -62,6 +70,7 @@ static Result rangeWith(uint8_t anchorId) {
   const uint32_t status =
       waitStatus(SYS_STATUS_RXFCG_BIT_MASK | SYS_STATUS_ALL_RX_TO | SYS_STATUS_ALL_RX_ERR);
   if (!(status & SYS_STATUS_RXFCG_BIT_MASK)) {
+    radioRecovery.noteFailure(status);
     clearExchangeEvents();
     return EX_NO_RESP;
   }
@@ -70,6 +79,7 @@ static Result rangeWith(uint8_t anchorId) {
   const size_t len = readRxFrame(rxBuf, sizeof(rxBuf));
   if (!isFrameFor(rxBuf, len, me, FN_RESP, RESP_LEN) || get16(rxBuf + IDX_SRC) != anchor ||
       get16(rxBuf + IDX_CYCLE) != cycleSeq) {
+    radioRecovery.noteFailure(status);
     return EX_BAD_RESP;
   }
   ++cycleRespCount;
@@ -91,10 +101,12 @@ static Result rangeWith(uint8_t anchorId) {
   dwt_setdelayedtrxtime(finalTxTime);
   loadTxFrame(fin, FINAL_LEN);
   if (dwt_starttx(DWT_START_TX_DELAYED) != DWT_SUCCESS) {
+    radioRecovery.noteFailure(dwt_read32bitreg(SYS_STATUS_ID));
     clearExchangeEvents();
     return EX_LATE;  // CPU took longer than REPLY_DLY_UUS
   }
   if (!(waitStatus(SYS_STATUS_TXFRS_BIT_MASK) & SYS_STATUS_TXFRS_BIT_MASK)) {
+    radioRecovery.noteFailure(dwt_read32bitreg(SYS_STATUS_ID));
     clearExchangeEvents();
     return EX_TX_FAIL;
   }
@@ -135,17 +147,19 @@ void loop() {
   cycleAlertSeen = false;
   cycleRespCount = 0;
 
-  for (uint8_t a = 0; a < NUM_ANCHORS; ++a) {
+  for (uint8_t a = 0; radioRecovery.ready() && a < NUM_ANCHORS; ++a) {
     const Result r = rangeWith(a);
     ++tryCount[a];
     if (r == EX_OK) {
       ++okCount[a];
+      radioRecovery.noteSuccess();
     } else {
       lastFail[a] = r;
     }
   }
   ++cycleSeq;
   if (cycleRespCount) alertOn = cycleAlertSeen;
+  radioRecovery.check(false);
 
   if (millis() - lastSummaryMs >= SUMMARY_MS) {
     lastSummaryMs = millis();

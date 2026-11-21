@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Start the receiver and the dashboard for testing, without sudo or systemd.
-#   ./run_dev.sh            start (ZIP lite on 8080, original on 8081)
-#   ./run_dev.sh stop       stop receiver and both dashboards
+#   ./run_dev.sh            start (main dashboard on 8080)
+#   ./run_dev.sh stop       stop receiver and dashboards
 #   ./run_dev.sh status     show all processes and last log lines
 # For the always-on setup use setup_pi.sh (systemd, port 80) instead.
 set -euo pipefail
@@ -22,7 +22,7 @@ case "${1:-start}" in
     ;;
   status)
     pgrep -fl "$DIR/fire_tag_(receiver|web|web_lite).py" || echo "not running"
-    tail -n 5 "$DIR/data/receiver.log" "$DIR/data/web_lite.log" "$DIR/data/web.log" 2>/dev/null || true
+    tail -n 5 "$DIR/data/receiver.log" "$DIR/data/web.log" 2>/dev/null || true
     ;;
   start)
     stop
@@ -38,21 +38,18 @@ PY
     nohup python3 -u "$DIR/fire_tag_receiver.py" --db "$DIR/data/fire_tag.db" --record "$DIR/data/raw.jsonl" \
       > "$DIR/data/receiver.log" 2>&1 &
     receiver_pid=$!
-    nohup python3 -u "$DIR/fire_tag_web_lite.py" --db "$DIR/data/fire_tag.db" --port "$PORT" > "$DIR/data/web_lite.log" 2>&1 &
-    lite_pid=$!
-    nohup python3 -u "$DIR/fire_tag_web.py" --db "$DIR/data/fire_tag.db" --port "$((PORT + 1))" > "$DIR/data/web.log" 2>&1 &
+    nohup python3 -u "$DIR/fire_tag_web.py" --db "$DIR/data/fire_tag.db" --port "$PORT" > "$DIR/data/web.log" 2>&1 &
     web_pid=$!
     sleep 2
-    if ! kill -0 "$receiver_pid" 2>/dev/null || ! kill -0 "$lite_pid" 2>/dev/null || ! kill -0 "$web_pid" 2>/dev/null; then
+    if ! kill -0 "$receiver_pid" 2>/dev/null || ! kill -0 "$web_pid" 2>/dev/null; then
       echo "receiver or dashboard failed to start:" >&2
-      tail -n 15 "$DIR/data/receiver.log" "$DIR/data/web_lite.log" "$DIR/data/web.log" >&2
+      tail -n 15 "$DIR/data/receiver.log" "$DIR/data/web.log" >&2
       stop
       exit 1
     fi
     pgrep -fl "$DIR/fire_tag_(receiver|web|web_lite).py"
     for ip in $(hostname -I 2>/dev/null || ipconfig getifaddr en0); do
       echo "Dashboard: http://$ip:$PORT"
-      echo "Original:  http://$ip:$((PORT + 1))"
     done
     ;;
   *)

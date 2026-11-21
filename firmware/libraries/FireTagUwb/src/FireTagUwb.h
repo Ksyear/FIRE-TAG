@@ -112,6 +112,25 @@ inline void put16(uint8_t *p, uint16_t v) { p[0] = uint8_t(v); p[1] = uint8_t(v 
 // on error; the caller decides whether to retry or halt.
 bool initRadio();
 
+// Silence can also mean an absent/obstructed peer; only real exchanges reset
+// this timer. A configured radio is not proof that ranging has recovered.
+class RadioRecovery {
+ public:
+  void noteSuccess() { lastSuccessMs_ = millis(); rearmed_ = false; }
+  void noteFailure(uint32_t status) { lastStatus_ = status; lastState_ = dwt_read32bitreg(SYS_STATE_LO_ID); }
+  bool ready() const { return ready_; }
+  void check(bool listen);
+
+ private:
+  uint32_t lastSuccessMs_ = 0;
+  uint32_t lastInitMs_ = 0;
+  uint32_t attempts_ = 0;
+  uint32_t lastStatus_ = 0;
+  uint32_t lastState_ = 0;
+  bool rearmed_ = false;
+  bool ready_ = true;
+};
+
 // Writes the frame and its length into the TX buffer (FCS added by radio).
 void loadTxFrame(uint8_t *frame, size_t len);
 

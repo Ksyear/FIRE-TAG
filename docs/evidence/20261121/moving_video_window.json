@@ -1,0 +1,25 @@
+{
+  "video_start_utc": "2026-11-21T08:53:41.159000+00:00",
+  "video_end_utc": "2026-11-21T08:54:41.159000+00:00",
+  "boundary_note": "inferred from browser recording stop filename; approximate by encoding/stop callback delay",
+  "position_rows": 469,
+  "gaps_over_1s": [
+    {
+      "gap_s": 10.103,
+      "from": "2026-11-21T17:53:51.554602+09:00",
+      "to": "2026-11-21T17:54:01.657301+09:00"
+    }
+  ],
+  "events": [
+    {
+      "t": 1795251233.5635931,
+      "kind": "tag_lost",
+      "message": "요구조자 Tag 0 위치 갱신 끊김 (2.0초)"
+    },
+    {
+      "t": 1795251241.6572158,
+      "kind": "tag_found",
+      "message": "요구조자 Tag 0 위치 갱신 재개"
+    }
+  ]
+}
